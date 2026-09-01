@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "694993744314",
+    "project_id": "real-estate-sales-app-dev",
+    "storage_bucket": "real-estate-sales-app-dev.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:694993744314:android:6cc16a3f6945f998c32d83",
+        "android_client_info": {
+          "package_name": "com.adityaa9009.realestate.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3r-xVLjfuHF6vxoNqNjKSFJUv15XaJ4E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
