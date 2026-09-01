@@ -1,6 +1,15 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
-void main() => runApp(const RealEstateSalesApp());
+import 'firebase_options.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  runApp(const RealEstateSalesApp());
+}
 
 enum AppRole { admin, executive, insideSales, outsideSales }
 
@@ -17,6 +26,16 @@ extension AppRoleDetails on AppRole {
     AppRole.executive => Icons.manage_accounts_outlined,
     AppRole.insideSales => Icons.support_agent_outlined,
     AppRole.outsideSales => Icons.location_on_outlined,
+  };
+
+  /// Maps the exact Firestore `role` string (per docs/DATABASE_SCHEMA.md)
+  /// to an [AppRole]. Returns null for any unrecognized value.
+  static AppRole? fromFirestoreValue(String? value) => switch (value) {
+    'admin' => AppRole.admin,
+    'executive' => AppRole.executive,
+    'inside_sales' => AppRole.insideSales,
+    'outside_sales' => AppRole.outsideSales,
+    _ => null,
   };
 }
 
@@ -46,8 +65,8 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  AppRole _selectedRole = AppRole.admin;
   bool _hidePassword = true;
+  bool _isLoading = false;
   String? _error;
 
   @override
@@ -57,17 +76,92 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _signIn() {
+  Future<void> _signIn() async {
     final email = _emailController.text.trim();
-    if (email.isEmpty || _passwordController.text.isEmpty) {
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
       setState(() => _error = 'Enter your email and password.');
       return;
     }
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(
-        builder: (_) => RoleHomePage(role: _selectedRole, email: email),
-      ),
-    );
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final credential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
+
+      final uid = credential.user?.uid;
+      if (uid == null) {
+        throw StateError('Sign in succeeded but no user was returned.');
+      }
+
+      final employeeDoc = await FirebaseFirestore.instance
+          .collection('employees')
+          .doc(uid)
+          .get();
+
+      if (!employeeDoc.exists) {
+        await FirebaseAuth.instance.signOut();
+        setState(() {
+          _error =
+              'No employee record found for this account. Contact your administrator.';
+        });
+        return;
+      }
+
+      final data = employeeDoc.data()!;
+      final active = data['active'] as bool? ?? false;
+      if (!active) {
+        await FirebaseAuth.instance.signOut();
+        setState(() {
+          _error = 'This employee account is inactive. Contact your administrator.';
+        });
+        return;
+      }
+
+      final role = AppRoleDetails.fromFirestoreValue(data['role'] as String?);
+      if (role == null) {
+        await FirebaseAuth.instance.signOut();
+        setState(() {
+          _error = 'This account does not have an authorized role.';
+        });
+        return;
+      }
+
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => RoleHomePage(role: role, email: email),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      setState(() => _error = _messageForAuthError(e));
+    } catch (e) {
+      setState(() => _error = 'Something went wrong. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  String _messageForAuthError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'invalid-email':
+        return 'That email address looks invalid.';
+      case 'user-disabled':
+        return 'This account has been disabled.';
+      case 'user-not-found':
+      case 'invalid-credential':
+      case 'wrong-password':
+        return 'Incorrect email or password.';
+      case 'too-many-requests':
+        return 'Too many attempts. Please wait and try again.';
+      default:
+        return 'Sign in failed. Please try again.';
+    }
   }
 
   @override
@@ -114,6 +208,7 @@ class _LoginPageState extends State<LoginPage> {
                     TextField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
+                      enabled: !_isLoading,
                       decoration: const InputDecoration(
                         labelText: 'Email',
                         border: OutlineInputBorder(),
@@ -123,6 +218,7 @@ class _LoginPageState extends State<LoginPage> {
                     TextField(
                       controller: _passwordController,
                       obscureText: _hidePassword,
+                      enabled: !_isLoading,
                       decoration: InputDecoration(
                         labelText: 'Password',
                         border: const OutlineInputBorder(),
@@ -137,25 +233,6 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<AppRole>(
-                      initialValue: _selectedRole,
-                      decoration: const InputDecoration(
-                        labelText: 'Test role (temporary)',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: AppRole.values
-                          .map(
-                            (role) => DropdownMenuItem(
-                              value: role,
-                              child: Text(role.label),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (role) {
-                        if (role != null) setState(() => _selectedRole = role);
-                      },
-                    ),
                     if (_error != null) ...[
                       const SizedBox(height: 12),
                       Text(
@@ -165,17 +242,20 @@ class _LoginPageState extends State<LoginPage> {
                     ],
                     const SizedBox(height: 24),
                     FilledButton(
-                      onPressed: _signIn,
+                      onPressed: _isLoading ? null : _signIn,
                       style: FilledButton.styleFrom(
                         minimumSize: const Size.fromHeight(52),
                       ),
-                      child: const Text('Sign in'),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'For now, enter any email and password, choose a role, '
-                      'and sign in. Firebase will replace this test mode.',
-                      style: theme.textTheme.bodySmall,
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text('Sign in'),
                     ),
                   ],
                 ),
@@ -194,6 +274,15 @@ class RoleHomePage extends StatelessWidget {
   final AppRole role;
   final String email;
 
+  Future<void> _signOut(BuildContext context) async {
+    await FirebaseAuth.instance.signOut();
+    if (!context.mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (_) => const LoginPage()),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -203,10 +292,7 @@ class RoleHomePage extends StatelessWidget {
         actions: [
           IconButton(
             tooltip: 'Sign out',
-            onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute<void>(builder: (_) => const LoginPage()),
-              (route) => false,
-            ),
+            onPressed: () => _signOut(context),
             icon: const Icon(Icons.logout),
           ),
         ],
@@ -232,7 +318,7 @@ class RoleHomePage extends StatelessWidget {
                   const SizedBox(height: 24),
                   const Text(
                     'Role routing is working. This temporary page will be '
-                    'replaced by the assigned team member’s module.',
+                    'replaced by the assigned team member\u2019s module.',
                     textAlign: TextAlign.center,
                   ),
                 ],
