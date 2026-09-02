@@ -11,7 +11,9 @@ class LocationService {
         permission == LocationPermission.denied) {
       throw Exception('Location permission is required to use this app');
     }
-    return Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    return Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+    );
   }
 
   static double distanceToOfficeMeters(Position position) {

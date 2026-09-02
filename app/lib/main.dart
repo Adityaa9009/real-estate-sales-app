@@ -1,9 +1,11 @@
+import 'package:flutter/material.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
+import 'screens/dashboard_shell.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -118,7 +120,8 @@ class _LoginPageState extends State<LoginPage> {
       if (!active) {
         await FirebaseAuth.instance.signOut();
         setState(() {
-          _error = 'This employee account is inactive. Contact your administrator.';
+          _error =
+              'This employee account is inactive. Contact your administrator.';
         });
         return;
       }
@@ -133,11 +136,20 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute<void>(
-          builder: (_) => RoleHomePage(role: role, email: email),
-        ),
-      );
+
+      if (role == AppRole.insideSales) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (_) => const DashboardShell(),
+          ),
+        );
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (_) => RoleHomePage(role: role, email: email),
+          ),
+        );
+      }
     } on FirebaseAuthException catch (e) {
       setState(() => _error = _messageForAuthError(e));
     } catch (e) {
@@ -318,7 +330,7 @@ class RoleHomePage extends StatelessWidget {
                   const SizedBox(height: 24),
                   const Text(
                     'Role routing is working. This temporary page will be '
-                    'replaced by the assigned team member\u2019s module.',
+                    'replaced by the assigned team member’s module.',
                     textAlign: TextAlign.center,
                   ),
                 ],

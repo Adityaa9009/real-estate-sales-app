@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../config/office_location.dart';
 import '../services/location_service.dart';
 import '../services/auth_service.dart';
-import '../services/screenshot_protection_service.dart';
 import 'home_screen.dart';
 import 'calls_screen.dart';
 import 'interested_screen.dart';
@@ -32,7 +31,6 @@ class _DashboardShellState extends State<DashboardShell> {
   @override
   void initState() {
     super.initState();
-    ScreenshotProtectionService.enable();
     _watchGeofence();
   }
 
@@ -53,7 +51,6 @@ class _DashboardShellState extends State<DashboardShell> {
   @override
   void dispose() {
     _locationSub?.cancel();
-    ScreenshotProtectionService.disable();
     super.dispose();
   }
 

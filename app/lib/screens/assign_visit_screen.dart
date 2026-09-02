@@ -41,8 +41,10 @@ class _AssignVisitScreenState extends State<AssignVisitScreen> {
       lastDate: DateTime.now().add(const Duration(days: 90)),
     );
     if (date == null) return;
+    if (!mounted) return;
     final time = await showTimePicker(context: context, initialTime: TimeOfDay.now());
     if (time == null) return;
+    if (!mounted) return;
     setState(() {
       _visitTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
     });

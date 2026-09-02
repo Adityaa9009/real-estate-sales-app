@@ -24,7 +24,7 @@ class NotInterestedScreen extends StatelessWidget {
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
-              headingRowColor: MaterialStateProperty.all(const Color(0xFF1A1F2E)),
+              headingRowColor: WidgetStateProperty.all(const Color(0xFF1A1F2E)),
               columns: const [
                 DataColumn(label: Text('Customer Name', style: TextStyle(color: Colors.white))),
                 DataColumn(label: Text('Customer Phone', style: TextStyle(color: Colors.white))),
