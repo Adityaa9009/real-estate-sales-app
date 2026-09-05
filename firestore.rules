@@ -32,7 +32,7 @@ service cloud.firestore {
     }
 
     match /employees/{employeeId} {
-      allow read: if isSignedIn() && (request.auth.uid == employeeId || isAdmin());
+      allow read: if isActiveEmployee() || (isSignedIn() && request.auth.uid == employeeId);
       allow create, update: if isAdminOrExecutive();
       allow delete: if isAdmin();
     }
