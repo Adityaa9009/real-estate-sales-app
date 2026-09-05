@@ -17,8 +17,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController(text: 'admin@realestate.com');
-  final _passwordController = TextEditingController(text: 'password123');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
   String? _errorMessage;
@@ -72,56 +72,10 @@ class _LoginScreenState extends State<LoginScreen> {
       _navigateToRoleDashboard(employee);
     } catch (e) {
       if (!mounted) return;
-      // If Firebase auth fails because user does not exist in Auth yet, allow Demo Bypass for evaluation!
-      if (e.toString().contains('user-not-found') ||
-          e.toString().contains('invalid-credential') ||
-          e.toString().contains('No employee profile found')) {
-        _promptDemoBypass(email);
-      } else {
-        setState(() => _errorMessage = e.toString().replaceAll('Exception: ', ''));
-      }
+      setState(() => _errorMessage = e.toString().replaceAll('Exception: ', '').replaceAll('StateError: ', ''));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  void _promptDemoBypass(String email) {
-    AppRole role = AppRole.insideSales;
-    String name = 'Demo User';
-
-    if (email.contains('admin')) {
-      role = AppRole.admin;
-      name = 'Aditya Duhan (Admin)';
-    } else if (email.contains('executive')) {
-      role = AppRole.executive;
-      name = 'Rajesh Sharma (Executive)';
-    } else if (email.contains('outside')) {
-      role = AppRole.outsideSales;
-      name = 'Venkatesh Rao (Outside Sales)';
-    } else {
-      role = AppRole.insideSales;
-      name = 'Sudheer Kumar (Inside Sales)';
-    }
-
-    // Create demo employee object
-    final demoEmp = Employee(
-      id: 'demo_${role.firestoreValue}',
-      name: name,
-      email: email,
-      phone: '9876543210',
-      role: role,
-    );
-    AuthService.currentEmployee = demoEmp;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: AppColors.info,
-        content: Text('Logging in with evaluation mode as ${role.label}...'),
-        duration: const Duration(seconds: 1),
-      ),
-    );
-
-    _navigateToRoleDashboard(demoEmp);
   }
 
   @override
@@ -137,7 +91,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Demo Banner
                   DemoAccountBanner(
                     onSelectAccount: (email, password) {
                       _emailController.text = email;
@@ -146,8 +99,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-
-                  // Brand Logo & Title (matching PDF: "REAL ESTATE / Your trusted path to property")
                   Center(
                     child: Container(
                       width: 72,
@@ -188,8 +139,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-
-                  // Error Box
                   if (_errorMessage != null) ...[
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -213,8 +162,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 16),
                   ],
-
-                  // Email Field
                   const Text(
                     'Email Address',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
@@ -230,8 +177,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // Password Field
                   const Text(
                     'Password',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
@@ -254,8 +199,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-
-                  // Login Button
                   SizedBox(
                     height: 50,
                     child: ElevatedButton(
@@ -277,8 +220,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
-                  // Geofence Simulator Switch (for company presentation)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
