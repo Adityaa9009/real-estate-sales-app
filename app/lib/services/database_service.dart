@@ -133,7 +133,7 @@ class DatabaseService {
       'outsideSalesId': outsideSalesId,
       'outsideSalesName': outsideSalesName,
       'scheduledAt': Timestamp.fromDate(visitDateTime),
-      'status': 'scheduled',
+      'status': 'visit_scheduled',
       'notes': propertyNotes,
     });
   }
@@ -354,7 +354,7 @@ class DatabaseService {
         'outsideSalesId': 'demo_outside_id',
         'outsideSalesName': 'Venkatesh Rao',
         'scheduledAt': Timestamp.fromDate(DateTime.now().add(const Duration(hours: 3))),
-        'status': 'scheduled',
+        'status': 'visit_scheduled',
         'notes': 'Site visit at Tower 4, Royal Palms DLF Phase 5',
       },
       {
