@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
+import 'outside_sales_dashboard.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,6 +53,7 @@ class RealEstateSalesApp extends StatelessWidget {
       useMaterial3: true,
     ),
     home: const LoginPage(),
+    routes: {'/login': (_) => const LoginPage()},
   );
 }
 
@@ -91,8 +93,10 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      final credential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password);
+      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
       final uid = credential.user?.uid;
       if (uid == null) {
@@ -107,8 +111,7 @@ class _LoginPageState extends State<LoginPage> {
       if (!employeeDoc.exists) {
         await FirebaseAuth.instance.signOut();
         setState(() {
-          _error =
-              'No employee record found for this account. Contact your administrator.';
+          _error = 'No employee record found for this account. Contact your administrator.';
         });
         return;
       }
@@ -118,7 +121,8 @@ class _LoginPageState extends State<LoginPage> {
       if (!active) {
         await FirebaseAuth.instance.signOut();
         setState(() {
-          _error = 'This employee account is inactive. Contact your administrator.';
+          _error =
+              'This employee account is inactive. Contact your administrator.';
         });
         return;
       }
@@ -133,11 +137,20 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute<void>(
-          builder: (_) => RoleHomePage(role: role, email: email),
-        ),
-      );
+
+      if (role == AppRole.outsideSales) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (_) => const OutsideSalesDashboard(),
+          ),
+        );
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (_) => RoleHomePage(role: role, email: email),
+          ),
+        );
+      }
     } on FirebaseAuthException catch (e) {
       setState(() => _error = _messageForAuthError(e));
     } catch (e) {
