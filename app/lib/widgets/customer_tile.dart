@@ -36,18 +36,7 @@ class CustomerTile extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.surfaceBorder, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(35),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      decoration: CardStyles.secondary(borderRadius: 16),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Container(
@@ -60,25 +49,32 @@ class CustomerTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
-                    width: 40,
-                    height: 40,
+                    width: 46,
+                    height: 46,
                     decoration: BoxDecoration(
-                      color: statusColor.withAlpha(30),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: statusColor.withAlpha(90), width: 1),
+                      color: statusColor.withAlpha(35),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: statusColor.withAlpha(90), width: 1.2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: statusColor.withAlpha(45),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
                     ),
                     alignment: Alignment.center,
                     child: Text(
                       initials,
                       style: TextStyle(
                         color: statusColor,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
                         letterSpacing: -0.2,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,15 +89,15 @@ class CustomerTile extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 4),
                         Row(
                           children: [
                             const Icon(
-                              Icons.phone_outlined,
+                              Icons.phone_rounded,
                               size: 13,
                               color: AppColors.textMuted,
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 5),
                             Text(
                               customer.maskedPhone,
                               style: const TextStyle(

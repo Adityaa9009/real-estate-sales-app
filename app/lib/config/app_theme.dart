@@ -73,6 +73,81 @@ class AppColors {
   );
 }
 
+class CardStyles {
+  /// Primary elevated card (hero metric cards, chart cards, primary modal surfaces)
+  /// Rich layered surface with refined border, ambient shadow, and optional accent glow.
+  static BoxDecoration primary({
+    Color? color,
+    Color? borderColor,
+    double borderRadius = 18.0,
+    LinearGradient? gradient,
+    Color? glowColor,
+  }) => BoxDecoration(
+    color: gradient == null ? (color ?? AppColors.surfaceCard) : null,
+    gradient: gradient,
+    borderRadius: BorderRadius.circular(borderRadius),
+    border: Border.all(
+      color: borderColor ?? (glowColor != null ? glowColor.withAlpha(90) : AppColors.surfaceBorder),
+      width: 1.2,
+    ),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withAlpha(50),
+        blurRadius: 16,
+        spreadRadius: 0,
+        offset: const Offset(0, 6),
+      ),
+      if (glowColor != null)
+        BoxShadow(
+          color: glowColor.withAlpha(35),
+          blurRadius: 20,
+          spreadRadius: -2,
+          offset: const Offset(0, 4),
+        ),
+    ],
+  );
+
+  /// Secondary card (standard list items, customer tiles, employee cards, secondary stat cards)
+  /// Clean surface with crisp border and smooth subtle elevation.
+  static BoxDecoration secondary({
+    Color? color,
+    Color? borderColor,
+    double borderRadius = 14.0,
+    LinearGradient? gradient,
+  }) => BoxDecoration(
+    color: gradient == null ? (color ?? AppColors.surfaceCard) : null,
+    gradient: gradient,
+    borderRadius: BorderRadius.circular(borderRadius),
+    border: Border.all(
+      color: borderColor ?? AppColors.surfaceBorder,
+      width: 1.0,
+    ),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withAlpha(30),
+        blurRadius: 10,
+        spreadRadius: 0,
+        offset: const Offset(0, 3),
+      ),
+    ],
+  );
+
+  /// Flat card (embedded sub-panels, chip bars, inner form containers, dialog content blocks)
+  /// Clean surface background with subtle border and zero shadow.
+  static BoxDecoration flat({
+    Color? color,
+    Color? borderColor,
+    double borderRadius = 12.0,
+  }) => BoxDecoration(
+    color: color ?? AppColors.surfaceLight,
+    borderRadius: BorderRadius.circular(borderRadius),
+    border: Border.all(
+      color: borderColor ?? AppColors.surfaceBorder,
+      width: 1.0,
+    ),
+  );
+}
+
 class AppTheme {
   static ThemeData get darkTheme {
     final baseTextTheme = ThemeData.dark().textTheme;

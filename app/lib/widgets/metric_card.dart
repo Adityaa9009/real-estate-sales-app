@@ -9,6 +9,7 @@ class MetricCard extends StatefulWidget {
   final IconData icon;
   final Color accentColor;
   final VoidCallback? onTap;
+  final bool isPrimary;
 
   const MetricCard({
     super.key,
@@ -17,6 +18,7 @@ class MetricCard extends StatefulWidget {
     required this.icon,
     required this.accentColor,
     this.onTap,
+    this.isPrimary = false,
   });
 
   @override
@@ -28,46 +30,43 @@ class _MetricCardState extends State<MetricCard> {
 
   @override
   Widget build(BuildContext context) {
+    final borderRadius = widget.isPrimary ? 18.0 : 16.0;
+
+    final decoration = widget.isPrimary
+        ? CardStyles.primary(
+            glowColor: widget.accentColor,
+            borderRadius: borderRadius,
+            gradient: LinearGradient(
+              colors: [
+                widget.accentColor.withAlpha(40),
+                AppColors.surfaceCard,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          )
+        : CardStyles.secondary(
+            borderRadius: borderRadius,
+          );
+
     return AnimatedScale(
       scale: _isPressed ? 0.97 : 1.0,
       duration: const Duration(milliseconds: 120),
       curve: Curves.easeInOut,
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(borderRadius),
         child: InkWell(
           onTap: widget.onTap,
           onHighlightChanged: (highlighted) {
             setState(() => _isPressed = highlighted);
           },
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(borderRadius),
           splashColor: widget.accentColor.withAlpha(30),
           highlightColor: widget.accentColor.withAlpha(15),
           child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.surfaceCard,
-                  AppColors.surfaceCard.withAlpha(200),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: widget.accentColor.withAlpha(60),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(50),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-                AppColors.softGlow(widget.accentColor, blur: 16),
-              ],
-            ),
+            padding: EdgeInsets.all(widget.isPrimary ? 18 : 15),
+            decoration: decoration,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -76,40 +75,46 @@ class _MetricCardState extends State<MetricCard> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(9),
+                      padding: EdgeInsets.all(widget.isPrimary ? 10 : 8),
                       decoration: BoxDecoration(
-                        color: widget.accentColor.withAlpha(35),
-                        borderRadius: BorderRadius.circular(12),
+                        color: widget.accentColor.withAlpha(widget.isPrimary ? 45 : 30),
+                        borderRadius: BorderRadius.circular(widget.isPrimary ? 14 : 11),
                         border: Border.all(
-                          color: widget.accentColor.withAlpha(90),
-                          width: 1,
+                          color: widget.accentColor.withAlpha(widget.isPrimary ? 120 : 80),
+                          width: widget.isPrimary ? 1.4 : 1.0,
                         ),
                       ),
-                      child: Icon(widget.icon, color: widget.accentColor, size: 20),
+                      child: Icon(
+                        widget.icon,
+                        color: widget.accentColor,
+                        size: widget.isPrimary ? 22 : 18,
+                      ),
                     ),
                     if (widget.onTap != null)
                       Icon(
                         Icons.arrow_forward_ios_rounded,
                         size: 12,
-                        color: widget.accentColor.withAlpha(160),
+                        color: widget.accentColor.withAlpha(widget.isPrimary ? 220 : 160),
                       ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
                 Text(
                   widget.value,
                   style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
+                    fontSize: widget.isPrimary ? 26 : 21,
                     color: AppColors.textPrimary,
-                    letterSpacing: -0.5,
+                    letterSpacing: -0.6,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   widget.title,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
+                    fontWeight: widget.isPrimary ? FontWeight.w600 : FontWeight.w500,
+                    fontSize: widget.isPrimary ? 12 : 11,
+                    color: widget.isPrimary ? AppColors.textPrimary : AppColors.textSecondary,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
