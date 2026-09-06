@@ -19,7 +19,7 @@ class RealEstateSalesApp extends StatelessWidget {
     return MaterialApp(
       title: 'Real Estate Sales Platform',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme,
       home: const LoginScreen(),
     );
   }

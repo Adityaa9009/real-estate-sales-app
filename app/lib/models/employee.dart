@@ -19,10 +19,10 @@ extension AppRoleExtension on AppRole {
   };
 
   Color get color => switch (this) {
-    AppRole.admin => const Color(0xFFEF4444),
-    AppRole.executive => const Color(0xFF8B5CF6),
-    AppRole.insideSales => const Color(0xFF3B82F6),
-    AppRole.outsideSales => const Color(0xFF10B981),
+    AppRole.admin => const Color(0xFFE0294B),
+    AppRole.executive => const Color(0xFF7C5CFC),
+    AppRole.insideSales => const Color(0xFF3D8BFF),
+    AppRole.outsideSales => const Color(0xFF1FA971),
   };
 
   IconData get icon => switch (this) {

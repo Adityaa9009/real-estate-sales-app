@@ -24,13 +24,13 @@ class _CustomersTabState extends State<CustomersTab> {
   bool _showChart = true;
 
   static const Map<CustomerStatus, _StatusMetadata> _statusMetadata = {
-    CustomerStatus.unassigned: _StatusMetadata('Unassigned', Color(0xFF94A3B8)),
-    CustomerStatus.assignedToInsideSales: _StatusMetadata('Assigned', Color(0xFF3B82F6)),
-    CustomerStatus.interested: _StatusMetadata('Interested', Color(0xFF10B981)),
-    CustomerStatus.notInterested: _StatusMetadata('Not Interested', Color(0xFFEF4444)),
-    CustomerStatus.visitScheduled: _StatusMetadata('Visit Scheduled', Color(0xFFF59E0B)),
-    CustomerStatus.visitInProgress: _StatusMetadata('In Progress', Color(0xFF8B5CF6)),
-    CustomerStatus.visitCompleted: _StatusMetadata('Completed', Color(0xFF059669)),
+    CustomerStatus.unassigned: _StatusMetadata('Unassigned', Color(0xFF8A9099)),
+    CustomerStatus.assignedToInsideSales: _StatusMetadata('Assigned', Color(0xFF3D8BFF)),
+    CustomerStatus.interested: _StatusMetadata('Interested', Color(0xFF1FA971)),
+    CustomerStatus.notInterested: _StatusMetadata('Not Interested', Color(0xFFE0294B)),
+    CustomerStatus.visitScheduled: _StatusMetadata('Visit Scheduled', Color(0xFFFFC043)),
+    CustomerStatus.visitInProgress: _StatusMetadata('In Progress', Color(0xFF7C5CFC)),
+    CustomerStatus.visitCompleted: _StatusMetadata('Completed', Color(0xFF1FA971)),
   };
 
   void _showAssignDialog(Customer customer) {

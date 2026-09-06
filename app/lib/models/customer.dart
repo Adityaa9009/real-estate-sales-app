@@ -31,13 +31,13 @@ enum CustomerStatus {
   };
 
   Color get color => switch (this) {
-    CustomerStatus.unassigned => const Color(0xFF94A3B8),
-    CustomerStatus.assignedToInsideSales => const Color(0xFF3B82F6),
-    CustomerStatus.interested => const Color(0xFF10B981),
-    CustomerStatus.notInterested => const Color(0xFFEF4444),
-    CustomerStatus.visitScheduled => const Color(0xFFF59E0B),
-    CustomerStatus.visitInProgress => const Color(0xFF8B5CF6),
-    CustomerStatus.visitCompleted => const Color(0xFF059669),
+    CustomerStatus.unassigned => const Color(0xFF8A9099),
+    CustomerStatus.assignedToInsideSales => const Color(0xFF3D8BFF),
+    CustomerStatus.interested => const Color(0xFF1FA971),
+    CustomerStatus.notInterested => const Color(0xFFE0294B),
+    CustomerStatus.visitScheduled => const Color(0xFFFFC043),
+    CustomerStatus.visitInProgress => const Color(0xFF7C5CFC),
+    CustomerStatus.visitCompleted => const Color(0xFF1FA971),
   };
 
   static CustomerStatus fromString(String? value) => switch (value) {

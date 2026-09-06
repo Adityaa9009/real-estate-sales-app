@@ -1393,8 +1393,8 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
       AppColors.secondary,
       AppColors.info,
       AppColors.success,
-      const Color(0xFF8B5CF6),
-      const Color(0xFFEC4899),
+      AppColors.roleExecutive,
+      AppColors.accent,
     ];
 
     final List<PieChartSectionData> sections = [];

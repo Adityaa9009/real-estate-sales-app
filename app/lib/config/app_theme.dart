@@ -12,61 +12,76 @@ class AppSpacing {
 }
 
 class AppColors {
-  // Backgrounds
-  static const Color background = Color(0xFF0A0E1A);
-  static const Color surface = Color(0xFF131B2E);
-  static const Color surfaceLight = Color(0xFF1E293B);
-  static const Color surfaceCard = Color(0xFF162036);
-  static const Color surfaceBorder = Color(0xFF28354D);
+  // Core palette (exact values specified)
+  static const Color primary = Color(0xFFFF4B4B); // Hot Coral
+  static const Color secondary = Color(0xFFFF7A00); // Vivid Tangerine
+  static const Color accent = Color(0xFFFFC043); // Bright Marigold
+  static const Color background = Color(0xFFF8F9FA); // Clean Off-White
+  static const Color textPrimary = Color(0xFF1A1D1F); // Ink Black
 
-  // Accents & Brand
-  static const Color primary = Color(0xFF3B82F6); // Electric Blue
-  static const Color primaryDark = Color(0xFF1D4ED8);
-  static const Color primaryLight = Color(0xFF60A5FA);
-  static const Color secondary = Color(0xFF6366F1); // Indigo
+  // Derived surfaces (lighter/darker steps from background, for card layering)
+  static const Color surface = Color(0xFFFFFFFF); // Pure White (cards, sheets)
+  static const Color surfaceCard = Color(0xFFFFFFFF);
+  static const Color surfaceLight = Color(0xFFF1F3F5); // Recessed areas, input fills, stat backgrounds
+  static const Color surfaceBorder = Color(0xFFE3E6E8); // Light neutral border
 
-  // Status & Highlights
-  static const Color success = Color(0xFF10B981); // Emerald
-  static const Color warning = Color(0xFFF59E0B); // Amber
-  static const Color danger = Color(0xFFEF4444); // Rose
-  static const Color info = Color(0xFF06B6D4); // Cyan
+  // Text & semantic hierarchy
+  static const Color textSecondary = Color(0xFF5B6165); // Muted dark gray for secondary labels
+  static const Color textMuted = Color(0xFF8A9099); // Hints, timestamps, disabled
 
-  // Typography
-  static const Color textPrimary = Color(0xFFF8FAFC);
-  static const Color textSecondary = Color(0xFF94A3B8);
-  static const Color textMuted = Color(0xFF64748B);
+  // Status (tuned to sit cleanly on light surfaces)
+  static const Color danger = Color(0xFFE0294B); // Rich crimson
+  static const Color success = Color(0xFF1FA971); // Deep emerald
+  static const Color info = Color(0xFF3D8BFF); // Cerulean
+  static const Color warning = accent; // Bright Marigold
 
-  // Shimmer Skeleton Colors
-  static const Color shimmerBase = Color(0xFF162036);
-  static const Color shimmerHighlight = Color(0xFF28354D);
+  // Role accents (clean, high-contrast badges)
+  static const Color roleAdmin = Color(0xFFE0294B); // Crimson
+  static const Color roleExecutive = Color(0xFF7C5CFC); // Purple
+  static const Color roleInsideSales = Color(0xFF3D8BFF); // Blue
+  static const Color roleOutsideSales = Color(0xFF1FA971); // Emerald
+
+  // Skeleton / Shimmer (for light backgrounds)
+  static const Color shimmerBase = Color(0xFFE9ECEF);
+  static const Color shimmerHighlight = Color(0xFFF8F9FA);
+
+  // Backward-compatible color aliases
+  static const Color primaryDark = Color(0xFFD9383A);
+  static const Color primaryLight = Color(0xFFFF7A00);
 
   // Gradients
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF3B82F6), Color(0xFF6366F1)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
+    colors: [primary, secondary], // Coral -> Tangerine
+  );
+
+  static const LinearGradient warmAccentGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [secondary, accent], // Tangerine -> Marigold
   );
 
   static const LinearGradient cardGradient = LinearGradient(
-    colors: [Color(0xFF162036), Color(0xFF111827)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
+    colors: [Color(0xFFFFFFFF), Color(0xFFF8F9FA)],
   );
 
   static const LinearGradient successGradient = LinearGradient(
-    colors: [Color(0xFF059669), Color(0xFF10B981)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
+    colors: [Color(0xFF1FA971), Color(0xFF2DD4BF)],
   );
 
   static const LinearGradient glassBorder = LinearGradient(
-    colors: [Color(0x33FFFFFF), Color(0x0AFFFFFF)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
+    colors: [Color(0x1F000000), Color(0x0A000000)], // subtle dark border for light cards
   );
 
   static BoxShadow softGlow(Color color, {double blur = 14}) => BoxShadow(
-    color: color.withAlpha(45),
+    color: color.withAlpha(35),
     blurRadius: blur,
     spreadRadius: -2,
     offset: const Offset(0, 4),
@@ -92,14 +107,14 @@ class CardStyles {
     ),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withAlpha(50),
+        color: Colors.black.withAlpha(25),
         blurRadius: 16,
         spreadRadius: 0,
-        offset: const Offset(0, 6),
+        offset: const Offset(0, 4),
       ),
       if (glowColor != null)
         BoxShadow(
-          color: glowColor.withAlpha(35),
+          color: glowColor.withAlpha(20),
           blurRadius: 20,
           spreadRadius: -2,
           offset: const Offset(0, 4),
@@ -124,10 +139,10 @@ class CardStyles {
     ),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withAlpha(30),
+        color: Colors.black.withAlpha(15),
         blurRadius: 10,
         spreadRadius: 0,
-        offset: const Offset(0, 3),
+        offset: const Offset(0, 2),
       ),
     ],
   );
@@ -149,8 +164,8 @@ class CardStyles {
 }
 
 class AppTheme {
-  static ThemeData get darkTheme {
-    final baseTextTheme = ThemeData.dark().textTheme;
+  static ThemeData get lightTheme {
+    final baseTextTheme = ThemeData.light().textTheme;
     final textTheme = GoogleFonts.interTextTheme(baseTextTheme).copyWith(
       displayLarge: GoogleFonts.sora(
         fontSize: 32,
@@ -211,10 +226,10 @@ class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       scaffoldBackgroundColor: AppColors.background,
       textTheme: textTheme,
-      colorScheme: const ColorScheme.dark(
+      colorScheme: const ColorScheme.light(
         primary: AppColors.primary,
         secondary: AppColors.secondary,
         surface: AppColors.surface,
@@ -314,10 +329,36 @@ class AppTheme {
           fontSize: 12,
         ),
       ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: AppColors.surface,
+        indicatorColor: AppColors.primary.withAlpha(40),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            );
+          }
+          return GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textMuted,
+          );
+        }),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(color: AppColors.primary);
+          }
+          return const IconThemeData(color: AppColors.textMuted);
+        }),
+      ),
       dividerTheme: const DividerThemeData(
         color: AppColors.surfaceBorder,
         thickness: 1,
       ),
     );
   }
+
+  static ThemeData get darkTheme => lightTheme;
 }

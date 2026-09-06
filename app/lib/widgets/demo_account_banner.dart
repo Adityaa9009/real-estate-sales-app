@@ -39,7 +39,7 @@ class DemoAccountBanner extends StatelessWidget {
                 child: const Icon(
                   Icons.vpn_key_rounded,
                   size: 13,
-                  color: AppColors.primaryLight,
+                  color: AppColors.primary,
                 ),
               ),
               const SizedBox(width: 8),
@@ -49,7 +49,7 @@ class DemoAccountBanner extends StatelessWidget {
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.primaryLight,
+                    color: AppColors.primary,
                     letterSpacing: 0.2,
                   ),
                 ),
@@ -63,25 +63,25 @@ class DemoAccountBanner extends StatelessWidget {
             children: [
               _buildChip(
                 label: 'Admin',
-                color: AppColors.danger,
+                color: AppColors.roleAdmin,
                 email: 'admin@demo.com',
                 password: 'password123',
               ),
               _buildChip(
                 label: 'Executive',
-                color: AppColors.secondary,
+                color: AppColors.roleExecutive,
                 email: 'executive@demo.com',
                 password: 'password123',
               ),
               _buildChip(
                 label: 'Inside Sales',
-                color: AppColors.primary,
+                color: AppColors.roleInsideSales,
                 email: 'inside@demo.com',
                 password: 'password123',
               ),
               _buildChip(
                 label: 'Outside Sales',
-                color: AppColors.success,
+                color: AppColors.roleOutsideSales,
                 email: 'outside@demo.com',
                 password: 'password123',
               ),
