@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 
 import '../../config/app_theme.dart';
@@ -168,11 +169,11 @@ class _MediaVerificationCard extends StatelessWidget {
           .get(),
       builder: (context, snapshot) {
         final data = snapshot.data?.data();
-        final selfieUrl = data?['selfieUrl'] as String?;
-        final audioUrl = data?['audioUrl'] as String?;
+        final selfiePath = data?['selfiePath'] as String?;
+        final recordingPath = data?['recordingPath'] as String?;
 
-        final hasMedia = (selfieUrl != null && selfieUrl.isNotEmpty) ||
-            (audioUrl != null && audioUrl.isNotEmpty);
+        final hasMedia = (selfiePath != null && selfiePath.isNotEmpty) ||
+            (recordingPath != null && recordingPath.isNotEmpty);
 
         if (!hasMedia) {
           return Container(
@@ -217,7 +218,7 @@ class _MediaVerificationCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (selfieUrl != null && selfieUrl.isNotEmpty) ...[
+              if (selfiePath != null && selfiePath.isNotEmpty) ...[
                 const Row(
                   children: [
                     Icon(
@@ -237,21 +238,51 @@ class _MediaVerificationCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    selfieUrl,
-                    height: 140,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => const Center(
-                      child: Icon(Icons.broken_image_rounded),
-                    ),
-                  ),
+                FutureBuilder<String>(
+                  future: FirebaseStorage.instance.ref(selfiePath).getDownloadURL(),
+                  builder: (context, urlSnap) {
+                    if (urlSnap.connectionState == ConnectionState.waiting) {
+                      return const SizedBox(
+                        height: 100,
+                        child: Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      );
+                    }
+                    if (urlSnap.hasError || !urlSnap.hasData) {
+                      return Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceBorder.withAlpha(50),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Path: $selfiePath',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontFamily: 'monospace',
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      );
+                    }
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        urlSnap.data!,
+                        height: 140,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => const Center(
+                          child: Icon(Icons.broken_image_rounded),
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 10),
               ],
-              if (audioUrl != null && audioUrl.isNotEmpty) ...[
+              if (recordingPath != null && recordingPath.isNotEmpty) ...[
                 const Row(
                   children: [
                     Icon(
@@ -271,9 +302,13 @@ class _MediaVerificationCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Audio proof recorded and stored securely.',
-                  style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                Text(
+                  'Stored at: $recordingPath',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textMuted,
+                    fontFamily: 'monospace',
+                  ),
                 ),
               ],
             ],

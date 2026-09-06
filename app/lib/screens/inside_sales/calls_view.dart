@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../config/app_theme.dart';
 import '../../models/customer.dart';
 import '../../models/employee.dart';
+import '../../models/staff_directory.dart';
 import '../../services/database_service.dart';
 import '../../services/whatsapp_service.dart';
 import '../../widgets/customer_tile.dart';
@@ -183,8 +184,8 @@ class _CallsViewState extends State<CallsView> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                StreamBuilder<List<Employee>>(
-                  stream: DatabaseService.getEmployeesStream(
+                StreamBuilder<List<StaffDirectoryEntry>>(
+                  stream: DatabaseService.getStaffDirectoryStream(
                     roleFilter: AppRole.outsideSales,
                     onlyActive: true,
                   ),

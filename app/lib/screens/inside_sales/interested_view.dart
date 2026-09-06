@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../config/app_theme.dart';
 import '../../models/customer.dart';
 import '../../models/employee.dart';
+import '../../models/staff_directory.dart';
 import '../../services/database_service.dart';
 import '../../widgets/customer_tile.dart';
 
@@ -54,8 +55,8 @@ class InterestedView extends StatelessWidget {
           'Assign Site Visit: ${customer.name}',
           style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
         ),
-        content: StreamBuilder<List<Employee>>(
-          stream: DatabaseService.getEmployeesStream(
+        content: StreamBuilder<List<StaffDirectoryEntry>>(
+          stream: DatabaseService.getStaffDirectoryStream(
             roleFilter: AppRole.outsideSales,
             onlyActive: true,
           ),

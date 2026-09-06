@@ -17,6 +17,16 @@ Full employee profile (Admin or Self read-only; Admin-only update).
 | `createdAt` | timestamp | Creation date |
 | `dob` | string? | Date of birth |
 
+## `staff_directory`
+Public staff directory for assignment pickers (accessible by all active employees, Admin-only or Executive non-admin creation, Admin-only update). Contains zero sensitive employee PII.
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | string | Firebase Auth user ID |
+| `name` | string | Employee name |
+| `role` | string | `admin`, `executive`, `inside_sales`, or `outside_sales` |
+| `active` | boolean | Active status |
+
 ## `customers`
 Root customer documents must NEVER contain raw phone numbers.
 
@@ -104,13 +114,14 @@ Root visit documents contain only scheduling and status metadata. Media proofs a
 | `createdAt` | timestamp? | Creation date |
 
 ### `visits/{visitId}/private/media`
-Restricted subcollection storing media verification proofs. Accessible only by Admin and the assigned Outside Sales representative.
+Restricted subcollection storing media verification proofs. Accessible only by Admin and the assigned Outside Sales representative. Prohibited from root visit document.
 
 | Field | Type | Notes |
 |---|---|---|
-| `recordingUrl` | string? | Audio recording path |
-| `selfieUrl` | string? | Selfie verification path |
-| `createdAt` | timestamp | Created date |
+| `recordingPath` | string? | Firebase Storage object path (e.g. `visits/{visitId}/audio/...`) |
+| `selfiePath` | string? | Firebase Storage object path (e.g. `visits/{visitId}/selfies/...`) |
+| `createdAt` | timestamp? | Created date |
+| `updatedAt` | timestamp | Last updated timestamp |
 
 ## `broadcast_messages`
 
@@ -132,3 +143,14 @@ unassigned
 → visit_in_progress (bidirectional atomic sync with visit check-in)
 → visit_completed (bidirectional atomic sync with visit completion)
 ```
+
+## Firebase Storage Object Structure & Rules
+
+All customer site visit media is stored under restricted Cloud Storage object paths:
+
+| Object Path Pattern | Purpose | Authorized Roles |
+|---|---|---|
+| `visits/{visitId}/audio/{timestamp}.m4a` | Audio recording proof of site visit | Admin, assigned active Outside Sales representative |
+| `visits/{visitId}/selfies/{timestamp}.jpg` | Customer verification photo | Admin, assigned active Outside Sales representative |
+| `_healthcheck/{allPaths=**}` | Harmless probe path with no customer data | Active employees |
+| All other paths | Restricted / Denied | Denied to all |

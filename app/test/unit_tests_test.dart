@@ -1,13 +1,23 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:real_estate_sales_app/models/employee.dart';
 import 'package:real_estate_sales_app/models/customer.dart';
 import 'package:real_estate_sales_app/models/visit.dart';
 import 'package:real_estate_sales_app/models/attendance.dart';
 import 'package:real_estate_sales_app/models/customer_assignment.dart';
+import 'package:real_estate_sales_app/models/staff_directory.dart';
 import 'package:real_estate_sales_app/services/call_service.dart';
 import 'package:real_estate_sales_app/services/location_service.dart';
 import 'package:real_estate_sales_app/services/database_service.dart';
 import 'package:real_estate_sales_app/services/storage_availability_service.dart';
+
+class FakeStorageProbeDelegate implements StorageProbeDelegate {
+  final Future<void> Function(String path) onProbe;
+  FakeStorageProbeDelegate(this.onProbe);
+
+  @override
+  Future<void> probePath(String path) => onProbe(path);
+}
 
 void main() {
   group('AppRole fail-closed tests', () {
@@ -316,24 +326,189 @@ void main() {
     });
   });
 
+  group('StaffDirectoryEntry serialization and validation tests', () {
+    test('serializes to Firestore map correctly', () {
+      const entry = StaffDirectoryEntry(
+        id: 'outside-1',
+        name: 'Rahul Sharma',
+        role: AppRole.outsideSales,
+        active: true,
+      );
+
+      final map = entry.toFirestore();
+      expect(map['id'], 'outside-1');
+      expect(map['name'], 'Rahul Sharma');
+      expect(map['role'], 'outside_sales');
+      expect(map['active'], isTrue);
+      // Ensure no PII like phone, email, or dob is included
+      expect(map.containsKey('phone'), isFalse);
+      expect(map.containsKey('email'), isFalse);
+      expect(map.containsKey('dob'), isFalse);
+    });
+
+    test('deserializes from Map correctly', () {
+      final entry = StaffDirectoryEntry.fromMap('inside-1', {
+        'name': 'Priya Singh',
+        'role': 'inside_sales',
+        'active': true,
+      });
+
+      expect(entry.id, 'inside-1');
+      expect(entry.name, 'Priya Singh');
+      expect(entry.role, AppRole.insideSales);
+      expect(entry.active, isTrue);
+    });
+
+    test('fails closed when role is missing or invalid', () {
+      expect(
+        () => StaffDirectoryEntry.fromMap('bad-1', {
+          'name': 'Invalid Role',
+          'role': 'super_admin',
+          'active': true,
+        }),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        () => StaffDirectoryEntry.fromMap('bad-2', {
+          'name': 'Missing Role',
+          'active': true,
+        }),
+        throwsA(isA<FormatException>()),
+      );
+    });
+  });
+
+  group('StaffDirectoryMigrationReport tests', () {
+    test('tracks totals, migrated, existed, failed and errors', () {
+      const report = StaffDirectoryMigrationReport(
+        totalEmployees: 10,
+        migrated: 6,
+        alreadyExisted: 3,
+        failed: 1,
+        errors: ['Failed for employee emp-9: network timeout'],
+      );
+
+      expect(report.totalEmployees, 10);
+      expect(report.migrated, 6);
+      expect(report.alreadyExisted, 3);
+      expect(report.failed, 1);
+      expect(report.errors.length, 1);
+      expect(report.toString().contains('total=10'), isTrue);
+      expect(report.toString().contains('migrated=6'), isTrue);
+      expect(report.toString().contains('alreadyExisted=3'), isTrue);
+      expect(report.toString().contains('failed=1'), isTrue);
+    });
+  });
+
   group('StorageAvailabilityService tests', () {
+    setUp(() {
+      StorageAvailabilityService.clearCache();
+    });
+
     tearDown(() {
-      StorageAvailabilityService.setMockAvailability(null);
+      StorageAvailabilityService.clearCache();
     });
 
-    test('cachedStatus returns false when cache is empty', () {
-      StorageAvailabilityService.setMockAvailability(null);
-      expect(StorageAvailabilityService.cachedStatus, isFalse);
+    test('returns ready when probe succeeds', () async {
+      final service = StorageAvailabilityService(
+        delegate: FakeStorageProbeDelegate((path) async {
+          expect(path, '_healthcheck/probe');
+        }),
+      );
+
+      final result = await service.checkAvailability();
+      expect(result.status, StorageAvailabilityStatus.ready);
+      expect(result.isReady, isTrue);
+      expect(result.isUnauthorized, isFalse);
+      expect(result.isUnprovisioned, isFalse);
+      expect(StorageAvailabilityService.isReady, isTrue);
     });
 
-    test('cachedStatus returns true when mock availability is set to true', () {
-      StorageAvailabilityService.setMockAvailability(true);
-      expect(StorageAvailabilityService.cachedStatus, isTrue);
+    test('returns ready when probe throws object-not-found (bucket exists & authorized)', () async {
+      final service = StorageAvailabilityService(
+        delegate: FakeStorageProbeDelegate((path) async {
+          throw FirebaseException(plugin: 'storage', code: 'object-not-found');
+        }),
+      );
+
+      final result = await service.checkAvailability();
+      expect(result.status, StorageAvailabilityStatus.ready);
+      expect(result.isReady, isTrue);
+      expect(StorageAvailabilityService.isReady, isTrue);
     });
 
-    test('cachedStatus returns false when mock availability is set to false', () {
-      StorageAvailabilityService.setMockAvailability(false);
-      expect(StorageAvailabilityService.cachedStatus, isFalse);
+    test('probes visit-specific path when visitId provided', () async {
+      String? probedPath;
+      final service = StorageAvailabilityService(
+        delegate: FakeStorageProbeDelegate((path) async {
+          probedPath = path;
+        }),
+      );
+
+      final result = await service.checkAvailability(visitId: 'visit-123');
+      expect(probedPath, 'visits/visit-123/_probe');
+      expect(result.isReady, isTrue);
+    });
+
+    test('returns unauthorized when probe throws permission-denied', () async {
+      final service = StorageAvailabilityService(
+        delegate: FakeStorageProbeDelegate((path) async {
+          throw FirebaseException(plugin: 'storage', code: 'permission-denied');
+        }),
+      );
+
+      final result = await service.checkAvailability();
+      expect(result.status, StorageAvailabilityStatus.unauthorized);
+      expect(result.isUnauthorized, isTrue);
+      expect(result.isReady, isFalse);
+      expect(StorageAvailabilityService.isReady, isFalse);
+    });
+
+    test('returns unprovisioned when probe throws bucket-not-found or project-not-found', () async {
+      final service = StorageAvailabilityService(
+        delegate: FakeStorageProbeDelegate((path) async {
+          throw FirebaseException(plugin: 'storage', code: 'bucket-not-found');
+        }),
+      );
+
+      final result = await service.checkAvailability();
+      expect(result.status, StorageAvailabilityStatus.unprovisioned);
+      expect(result.isUnprovisioned, isTrue);
+      expect(result.isReady, isFalse);
+      expect(result.message.contains('Blaze plan configuration required'), isTrue);
+    });
+
+    test('returns networkError when probe throws network error', () async {
+      final service = StorageAvailabilityService(
+        delegate: FakeStorageProbeDelegate((path) async {
+          throw FirebaseException(plugin: 'storage', code: 'network-request-failed');
+        }),
+      );
+
+      final result = await service.checkAvailability();
+      expect(result.status, StorageAvailabilityStatus.networkError);
+      expect(result.isNetworkError, isTrue);
+      expect(result.isReady, isFalse);
+      // Network error is transient and should not be cached
+      expect(StorageAvailabilityService.cachedResult, isNull);
+    });
+
+    test('caches non-transient result unless forceRefresh is true', () async {
+      int probeCount = 0;
+      final service = StorageAvailabilityService(
+        delegate: FakeStorageProbeDelegate((path) async {
+          probeCount++;
+        }),
+      );
+
+      await service.checkAvailability();
+      expect(probeCount, 1);
+
+      await service.checkAvailability();
+      expect(probeCount, 1); // cached
+
+      await service.checkAvailability(forceRefresh: true);
+      expect(probeCount, 2); // refreshed
     });
   });
 }

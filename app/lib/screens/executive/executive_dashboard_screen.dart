@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../config/app_theme.dart';
 import '../../models/customer.dart';
 import '../../models/employee.dart';
+import '../../models/staff_directory.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../widgets/role_badge.dart';
@@ -507,8 +508,8 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
           ),
         ),
         Expanded(
-          child: StreamBuilder<List<Employee>>(
-            stream: DatabaseService.getEmployeesStream(
+          child: StreamBuilder<List<StaffDirectoryEntry>>(
+            stream: DatabaseService.getStaffDirectoryStream(
               roleFilter: _empFilter,
             ),
             builder: (context, snapshot) {
@@ -630,8 +631,8 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
           'Assign ${cust.name}',
           style: const TextStyle(color: AppColors.textPrimary),
         ),
-        content: StreamBuilder<List<Employee>>(
-          stream: DatabaseService.getEmployeesStream(
+        content: StreamBuilder<List<StaffDirectoryEntry>>(
+          stream: DatabaseService.getStaffDirectoryStream(
             roleFilter: AppRole.insideSales,
             onlyActive: true,
           ),

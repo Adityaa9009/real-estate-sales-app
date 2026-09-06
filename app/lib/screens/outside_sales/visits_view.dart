@@ -1,14 +1,14 @@
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../config/app_theme.dart';
 import '../../models/visit.dart';
+import '../../services/audio_recording_service.dart';
 import '../../services/call_service.dart';
 import '../../services/database_service.dart';
 import '../../services/media_service.dart';
@@ -22,6 +22,7 @@ class VisitsView extends StatefulWidget {
 }
 
 class _VisitsViewState extends State<VisitsView> {
+  final AudioRecordingService _audioService = AudioRecordingService();
   bool _isStorageAvailable = false;
 
   @override
@@ -30,17 +31,23 @@ class _VisitsViewState extends State<VisitsView> {
     _checkInitialStorage();
   }
 
+  @override
+  void dispose() {
+    _audioService.dispose();
+    super.dispose();
+  }
+
   Future<void> _checkInitialStorage() async {
-    final available = await StorageAvailabilityService.isStorageAvailable();
+    final res = await StorageAvailabilityService.check();
     if (mounted) {
       setState(() {
-        _isStorageAvailable = available;
+        _isStorageAvailable = res.isReady;
       });
     }
   }
 
-  Future<bool> _ensureStorageAvailable() async {
-    // Show a loading spinner briefly while checking
+  Future<StorageCheckResult> _ensureStorageAvailable({String? visitId}) async {
+    // Show brief progress spinner while checking
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -73,25 +80,26 @@ class _VisitsViewState extends State<VisitsView> {
       ),
     );
 
-    final available = await StorageAvailabilityService.isStorageAvailable(
+    final res = await StorageAvailabilityService.check(
+      visitId: visitId,
       forceRefresh: true,
     );
 
     if (mounted) {
       Navigator.of(context, rootNavigator: true).pop();
       setState(() {
-        _isStorageAvailable = available;
+        _isStorageAvailable = res.isReady;
       });
     }
 
-    if (!available && mounted) {
-      _showStorageRequiredDialog();
+    if (!res.isReady && mounted) {
+      _showStorageRequiredDialog(res);
     }
 
-    return available;
+    return res;
   }
 
-  void _showStorageRequiredDialog() {
+  void _showStorageRequiredDialog(StorageCheckResult result) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -104,13 +112,15 @@ class _VisitsViewState extends State<VisitsView> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        content: const Text(
-          'Visit recordings and verification selfies are stored securely in '
-          'Firebase Cloud Storage. This project\'s Firebase Storage has not been '
-          'enabled yet — it requires upgrading to the Blaze (pay-as-you-go) billing plan.\n\n'
-          'This feature is fully built and will work as soon as Storage is enabled. '
-          'No charges apply unless usage exceeds Firebase\'s generous free quota.',
-          style: TextStyle(
+        content: Text(
+          result.isUnauthorized
+              ? 'Your account is currently unauthorized to access Cloud Storage for this visit. Please verify your assignment and active employee status.'
+              : 'Visit recordings and verification selfies are stored securely in Firebase Cloud Storage. '
+                  'This project\'s Firebase Storage has not been configured yet — audio recording and '
+                  'media upload require Firebase Storage configuration on the Blaze (pay-as-you-go) billing plan.\n\n'
+                  'Once Firebase Cloud Storage is set up, site audio recording and customer selfie verification '
+                  'will be operational.',
+          style: const TextStyle(
             fontSize: 14,
             color: AppColors.textSecondary,
             height: 1.4,
@@ -131,7 +141,7 @@ class _VisitsViewState extends State<VisitsView> {
                 await launchUrl(uri, mode: LaunchMode.externalApplication);
               }
             },
-            child: const Text('View Setup Instructions'),
+            child: const Text('Firebase Storage setup information'),
           ),
         ],
       ),
@@ -139,34 +149,53 @@ class _VisitsViewState extends State<VisitsView> {
   }
 
   void _onReachedLocationTapped(Visit visit) async {
-    final storageOk = await _ensureStorageAvailable();
-    if (!storageOk) return;
+    final check = await _ensureStorageAvailable(visitId: visit.id);
+    if (!check.isReady) return;
 
-    _handleReachedLocation(visit);
-  }
+    // Check microphone permission before starting
+    final hasMic = await _audioService.hasPermission();
+    if (!hasMic) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: AppColors.danger,
+            content: Text(
+              'Microphone permission is required to record visit audio.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
 
-  void _handleReachedLocation(Visit visit) async {
     try {
+      // 1. Start real audio recording
+      await _audioService.startRecording(visit.id);
+
+      // 2. Mark visit in-progress atomically with customer status
       await DatabaseService.reachVisit(
         visitId: visit.id,
         customerId: visit.customerId,
       );
+
       if (mounted) {
+        setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: AppColors.success,
             content: Text(
-              'Reached location confirmed! Visit status marked in-progress.',
+              'Reached location confirmed! Audio recording started for this visit.',
             ),
           ),
         );
       }
     } catch (e) {
+      await _audioService.cancelRecording();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: AppColors.danger,
-            content: Text('Failed to update visit: $e'),
+            content: Text('Failed to start visit & recording: $e'),
           ),
         );
       }
@@ -174,15 +203,21 @@ class _VisitsViewState extends State<VisitsView> {
   }
 
   void _onUploadSelfieTapped(Visit visit) async {
-    final storageOk = await _ensureStorageAvailable();
-    if (!storageOk) return;
+    final check = await _ensureStorageAvailable(visitId: visit.id);
+    if (!check.isReady) return;
 
-    _handleUploadSelfie(visit);
-  }
-
-  void _handleUploadSelfie(Visit visit) async {
-    final path = await MediaService.captureVerificationPhoto();
-    if (path == null) return;
+    final XFile? photo = await MediaService.captureVerificationPhoto();
+    if (photo == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: AppColors.warning,
+            content: Text('Verification photo capture cancelled.'),
+          ),
+        );
+      }
+      return;
+    }
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -192,23 +227,38 @@ class _VisitsViewState extends State<VisitsView> {
       ),
     );
 
-    try {
-      final file = File(path);
-      final ref = FirebaseStorage.instance.ref(
-        'visits/${visit.id}/selfies/${DateTime.now().millisecondsSinceEpoch}.jpg',
-      );
-      await ref.putFile(file);
-      final downloadUrl = await ref.getDownloadURL();
+    final storagePath =
+        'visits/${visit.id}/selfies/${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final ref = FirebaseStorage.instance.ref(storagePath);
 
-      // Store in /visits/{visitId}/private/media subcollection per firestore.rules
+    try {
+      final bytes = await photo.readAsBytes();
+      await ref.putData(
+        bytes,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
+    } catch (uploadError) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.danger,
+            content: Text('Failed to upload selfie: $uploadError'),
+          ),
+        );
+      }
+      return;
+    }
+
+    // Write Firestore metadata only after successful Storage upload
+    try {
       await FirebaseFirestore.instance
           .collection('visits')
           .doc(visit.id)
           .collection('private')
           .doc('media')
           .set({
-            'selfieUrl': downloadUrl,
-            'uploadedAt': FieldValue.serverTimestamp(),
+            'selfiePath': storagePath,
+            'updatedAt': FieldValue.serverTimestamp(),
           }, SetOptions(merge: true));
 
       if (mounted) {
@@ -219,12 +269,16 @@ class _VisitsViewState extends State<VisitsView> {
           ),
         );
       }
-    } catch (e) {
+    } catch (firestoreError) {
+      // Rollback: best-effort delete uploaded object
+      await ref.delete().catchError((_) {});
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: AppColors.danger,
-            content: Text('Failed to upload selfie: $e'),
+            content: Text(
+              'Failed to save selfie metadata: $firestoreError. Upload was rolled back.',
+            ),
           ),
         );
       }
@@ -232,13 +286,10 @@ class _VisitsViewState extends State<VisitsView> {
   }
 
   void _onCompletedVisitTapped(Visit visit) async {
-    final storageOk = await _ensureStorageAvailable();
-    if (!storageOk) return;
+    final check = await _ensureStorageAvailable(visitId: visit.id);
+    if (!check.isReady) return;
+    if (!mounted) return;
 
-    _handleCompletedVisit(visit);
-  }
-
-  void _handleCompletedVisit(Visit visit) {
     final notesController = TextEditingController();
     showDialog(
       context: context,
@@ -253,7 +304,7 @@ class _VisitsViewState extends State<VisitsView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Confirm that the customer site visit has finished. Enter any visit notes below:',
+              'Finalize the customer visit. Visit audio recording will be uploaded and verified before completion.',
               style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 12),
@@ -279,38 +330,123 @@ class _VisitsViewState extends State<VisitsView> {
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
             onPressed: () async {
               Navigator.pop(ctx);
-              try {
-                await DatabaseService.completeVisit(
-                  visitId: visit.id,
-                  customerId: visit.customerId,
-                  notes: notesController.text.trim().isEmpty
-                      ? null
-                      : notesController.text.trim(),
-                );
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      backgroundColor: AppColors.success,
-                      content: Text('Visit marked completed successfully!'),
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: AppColors.danger,
-                      content: Text('Error: $e'),
-                    ),
-                  );
-                }
-              }
+              await _processVisitCompletion(visit, notesController.text.trim());
             },
             child: const Text('Complete Visit'),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _processVisitCompletion(Visit visit, String notes) async {
+    // 1. Stop audio recording
+    String? audioPath;
+    try {
+      audioPath = await _audioService.stopRecording();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.danger,
+            content: Text('Failed to stop audio recording: $e. Visit completion aborted.'),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (audioPath == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: AppColors.danger,
+            content: Text(
+              'Audio recording is required to complete this visit. Please record the visit audio before completing.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
+    // 2. Upload audio to Cloud Storage cross-platform
+    final audioStoragePath =
+        'visits/${visit.id}/audio/${DateTime.now().millisecondsSinceEpoch}.m4a';
+    final audioRef = FirebaseStorage.instance.ref(audioStoragePath);
+
+    try {
+      final audioFile = XFile(audioPath);
+      final audioBytes = await audioFile.readAsBytes();
+      await audioRef.putData(
+        audioBytes,
+        SettableMetadata(contentType: 'audio/mp4'),
+      );
+    } catch (uploadError) {
+      await _audioService.cancelRecording();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.danger,
+            content: Text('Failed to upload visit audio: $uploadError. Completion aborted.'),
+          ),
+        );
+      }
+      return;
+    }
+
+    // 3. Write metadata to /visits/{id}/private/media
+    try {
+      await FirebaseFirestore.instance
+          .collection('visits')
+          .doc(visit.id)
+          .collection('private')
+          .doc('media')
+          .set({
+            'recordingPath': audioStoragePath,
+            'updatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+    } catch (firestoreError) {
+      // Rollback: best-effort delete uploaded audio object
+      await audioRef.delete().catchError((_) {});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.danger,
+            content: Text(
+              'Failed to save visit audio metadata: $firestoreError. Completion aborted and audio upload rolled back.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
+    // 4. Complete visit atomically with customer document
+    try {
+      await DatabaseService.completeVisit(
+        visitId: visit.id,
+        customerId: visit.customerId,
+        notes: notes.isEmpty ? null : notes,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: AppColors.success,
+            content: Text('Visit marked completed successfully with audio proof!'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.danger,
+            content: Text('Error updating visit status: $e'),
+          ),
+        );
+      }
+    }
   }
 
   Widget _wrapWithLockBadge({required Widget child}) {
@@ -385,6 +521,8 @@ class _VisitsViewState extends State<VisitsView> {
           itemCount: visits.length,
           itemBuilder: (context, index) {
             final v = visits[index];
+            final isCurrentRecording =
+                _audioService.isRecording && _audioService.currentVisitId == v.id;
 
             return Container(
               margin: const EdgeInsets.only(bottom: 14),
@@ -488,6 +626,31 @@ class _VisitsViewState extends State<VisitsView> {
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                  if (isCurrentRecording) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.danger.withAlpha(25),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.danger.withAlpha(80)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.mic, size: 16, color: AppColors.danger),
+                          SizedBox(width: 8),
+                          Text(
+                            'Audio recording active for this site visit...',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.danger,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],

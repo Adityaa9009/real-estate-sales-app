@@ -1,0 +1,48 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getEmployee(uid) {
+      return firestore.get(/databases/(default)/documents/employees/$(uid));
+    }
+
+    function isActiveEmployee() {
+      return isSignedIn() &&
+        firestore.exists(/databases/(default)/documents/employees/$(request.auth.uid)) &&
+        getEmployee(request.auth.uid).data.active == true;
+    }
+
+    function isAdmin() {
+      return isActiveEmployee() && getEmployee(request.auth.uid).data.role == 'admin';
+    }
+
+    function getVisit(visitId) {
+      return firestore.get(/databases/(default)/documents/visits/$(visitId));
+    }
+
+    function isAssignedOutsideSales(visitId) {
+      return isActiveEmployee() &&
+        getEmployee(request.auth.uid).data.role == 'outside_sales' &&
+        getVisit(visitId).data.outsideSalesId == request.auth.uid;
+    }
+
+    // Health-check probe path with no customer data, restricted to active employees
+    match /_healthcheck/{allPaths=**} {
+      allow read: if isActiveEmployee();
+    }
+
+    // Visit media: Admin or assigned active Outside Sales representative
+    match /visits/{visitId}/{allPaths=**} {
+      allow read, write: if isAdmin() || isAssignedOutsideSales(visitId);
+    }
+
+    // Deny all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
