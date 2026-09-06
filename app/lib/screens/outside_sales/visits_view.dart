@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -13,6 +14,9 @@ import '../../services/call_service.dart';
 import '../../services/database_service.dart';
 import '../../services/media_service.dart';
 import '../../services/storage_availability_service.dart';
+import '../../widgets/empty_state_widget.dart';
+import '../../widgets/search_bar_widget.dart';
+import '../../widgets/skeleton_shimmer.dart';
 
 class VisitsView extends StatefulWidget {
   const VisitsView({super.key});
@@ -24,6 +28,8 @@ class VisitsView extends StatefulWidget {
 class _VisitsViewState extends State<VisitsView> {
   final AudioRecordingService _audioService = AudioRecordingService();
   bool _isStorageAvailable = false;
+  String _search = '';
+  VisitStatus? _statusFilter;
 
   @override
   void initState() {
@@ -47,33 +53,43 @@ class _VisitsViewState extends State<VisitsView> {
   }
 
   Future<StorageCheckResult> _ensureStorageAvailable({String? visitId}) async {
-    // Show brief progress spinner while checking
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => const PopScope(
+      builder: (ctx) => PopScope(
         canPop: false,
         child: Center(
-          child: Card(
-            color: AppColors.surfaceCard,
-            elevation: 8,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text(
-                    'Checking Cloud Storage...',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w500,
-                    ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 22),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceCard,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.surfaceBorder),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(80),
+                  blurRadius: 20,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.primary),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Verifying Cloud Storage...',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w500,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -104,36 +120,48 @@ class _VisitsViewState extends State<VisitsView> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceCard,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Cloud Storage Required',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.bold,
-          ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.surfaceBorder),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withAlpha(30),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.cloud_off_rounded, color: AppColors.warning, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Cloud Storage Required',
+                style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+              ),
+            ),
+          ],
         ),
         content: Text(
           result.isUnauthorized
-              ? 'Your account is currently unauthorized to access Cloud Storage for this visit. Please verify your assignment and active employee status.'
-              : 'Visit recordings and verification selfies are stored securely in Firebase Cloud Storage. '
-                  'This project\'s Firebase Storage has not been configured yet — audio recording and '
-                  'media upload require Firebase Storage configuration on the Blaze (pay-as-you-go) billing plan.\n\n'
+              ? 'Your account is currently unauthorized to access Cloud Storage for this visit. Please verify your field assignment and active status.'
+              : 'Site audio recordings and verification selfies are stored securely in Firebase Cloud Storage. '
+                  'Cloud Storage requires active project configuration and bucket provisioning.\n\n'
                   'Once Firebase Cloud Storage is set up, site audio recording and customer selfie verification '
-                  'will be operational.',
-          style: const TextStyle(
-            fontSize: 14,
-            color: AppColors.textSecondary,
-            height: 1.4,
-          ),
+                  'will be fully operational.',
+          style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary, height: 1.45),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
+            child: Text('Close', style: GoogleFonts.inter(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () async {
               final uri = Uri.parse('https://firebase.google.com/pricing');
@@ -141,7 +169,7 @@ class _VisitsViewState extends State<VisitsView> {
                 await launchUrl(uri, mode: LaunchMode.externalApplication);
               }
             },
-            child: const Text('Firebase Storage setup information'),
+            child: Text('Storage Documentation', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -152,16 +180,13 @@ class _VisitsViewState extends State<VisitsView> {
     final check = await _ensureStorageAvailable(visitId: visit.id);
     if (!check.isReady) return;
 
-    // Check microphone permission before starting
     final hasMic = await _audioService.hasPermission();
     if (!hasMic) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: AppColors.danger,
-            content: Text(
-              'Microphone permission is required to record visit audio.',
-            ),
+            content: Text('Microphone permission is required to record visit audio.'),
           ),
         );
       }
@@ -169,10 +194,7 @@ class _VisitsViewState extends State<VisitsView> {
     }
 
     try {
-      // 1. Start real audio recording
       await _audioService.startRecording(visit.id);
-
-      // 2. Mark visit in-progress atomically with customer status
       await DatabaseService.reachVisit(
         visitId: visit.id,
         customerId: visit.customerId,
@@ -183,9 +205,7 @@ class _VisitsViewState extends State<VisitsView> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: AppColors.success,
-            content: Text(
-              'Reached location confirmed! Audio recording started for this visit.',
-            ),
+            content: Text('Reached location confirmed! Audio recording started for this visit.'),
           ),
         );
       }
@@ -227,8 +247,7 @@ class _VisitsViewState extends State<VisitsView> {
       ),
     );
 
-    final storagePath =
-        'visits/${visit.id}/selfies/${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final storagePath = 'visits/${visit.id}/selfies/${DateTime.now().millisecondsSinceEpoch}.jpg';
     final ref = FirebaseStorage.instance.ref(storagePath);
 
     try {
@@ -249,7 +268,6 @@ class _VisitsViewState extends State<VisitsView> {
       return;
     }
 
-    // Write Firestore metadata only after successful Storage upload
     try {
       await FirebaseFirestore.instance
           .collection('visits')
@@ -270,15 +288,12 @@ class _VisitsViewState extends State<VisitsView> {
         );
       }
     } catch (firestoreError) {
-      // Rollback: best-effort delete uploaded object
       await ref.delete().catchError((_) {});
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: AppColors.danger,
-            content: Text(
-              'Failed to save selfie metadata: $firestoreError. Upload was rolled back.',
-            ),
+            content: Text('Failed to save selfie metadata: $firestoreError. Upload was rolled back.'),
           ),
         );
       }
@@ -295,28 +310,45 @@ class _VisitsViewState extends State<VisitsView> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceCard,
-        title: const Text(
-          'Complete Site Visit',
-          style: TextStyle(color: AppColors.textPrimary),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.surfaceBorder),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.success.withAlpha(30),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Complete Site Visit',
+                style: GoogleFonts.sora(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+              ),
+            ),
+          ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Finalize the customer visit. Visit audio recording will be uploaded and verified before completion.',
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             TextField(
               controller: notesController,
               maxLines: 3,
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: GoogleFonts.inter(color: AppColors.textPrimary, fontSize: 13),
               decoration: const InputDecoration(
-                labelText: 'Visit Notes',
-                hintText:
-                    'Customer feedback, budget confirmation, or next steps...',
-                border: OutlineInputBorder(),
+                labelText: 'Visit Notes & Client Feedback',
+                hintText: 'Customer feedback, budget confirmation, or next steps...',
               ),
             ),
           ],
@@ -324,15 +356,19 @@ class _VisitsViewState extends State<VisitsView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text('Cancel', style: GoogleFonts.inter(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
             onPressed: () async {
               Navigator.pop(ctx);
               await _processVisitCompletion(visit, notesController.text.trim());
             },
-            child: const Text('Complete Visit'),
+            child: Text('Complete Visit', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -340,7 +376,6 @@ class _VisitsViewState extends State<VisitsView> {
   }
 
   Future<void> _processVisitCompletion(Visit visit, String notes) async {
-    // 1. Stop audio recording
     String? audioPath;
     try {
       audioPath = await _audioService.stopRecording();
@@ -361,18 +396,14 @@ class _VisitsViewState extends State<VisitsView> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: AppColors.danger,
-            content: Text(
-              'Audio recording is required to complete this visit. Please record the visit audio before completing.',
-            ),
+            content: Text('Audio recording is required to complete this visit. Please record the visit audio before completing.'),
           ),
         );
       }
       return;
     }
 
-    // 2. Upload audio to Cloud Storage cross-platform
-    final audioStoragePath =
-        'visits/${visit.id}/audio/${DateTime.now().millisecondsSinceEpoch}.m4a';
+    final audioStoragePath = 'visits/${visit.id}/audio/${DateTime.now().millisecondsSinceEpoch}.m4a';
     final audioRef = FirebaseStorage.instance.ref(audioStoragePath);
 
     try {
@@ -395,7 +426,6 @@ class _VisitsViewState extends State<VisitsView> {
       return;
     }
 
-    // 3. Write metadata to /visits/{id}/private/media
     try {
       await FirebaseFirestore.instance
           .collection('visits')
@@ -407,22 +437,18 @@ class _VisitsViewState extends State<VisitsView> {
             'updatedAt': FieldValue.serverTimestamp(),
           }, SetOptions(merge: true));
     } catch (firestoreError) {
-      // Rollback: best-effort delete uploaded audio object
       await audioRef.delete().catchError((_) {});
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: AppColors.danger,
-            content: Text(
-              'Failed to save visit audio metadata: $firestoreError. Completion aborted and audio upload rolled back.',
-            ),
+            content: Text('Failed to save visit audio metadata: $firestoreError. Completion aborted and upload rolled back.'),
           ),
         );
       }
       return;
     }
 
-    // 4. Complete visit atomically with customer document
     try {
       await DatabaseService.completeVisit(
         visitId: visit.id,
@@ -488,247 +514,425 @@ class _VisitsViewState extends State<VisitsView> {
     final dateFormat = DateFormat('MMM dd, yyyy • hh:mm a');
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
 
-    return StreamBuilder<List<Visit>>(
-      stream: DatabaseService.getVisitsStream(outsideSalesId: currentUid),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        final visits = snapshot.data ?? [];
-        if (visits.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+    return Column(
+      children: [
+        // Storage Status notification strip if storage unconfigured
+        if (!_isStorageAvailable)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: AppColors.warning.withAlpha(25),
+            child: Row(
               children: [
-                Icon(
-                  Icons.assignment_turned_in_outlined,
-                  size: 54,
-                  color: AppColors.textMuted,
+                const Icon(Icons.cloud_off_rounded, size: 16, color: AppColors.warning),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Cloud Storage setup required for media recording & selfies',
+                    style: GoogleFonts.inter(fontSize: 11, color: AppColors.warning, fontWeight: FontWeight.w500),
+                  ),
                 ),
-                SizedBox(height: 12),
-                Text(
-                  'No scheduled customer visits assigned.',
-                  style: TextStyle(color: AppColors.textSecondary),
+                TextButton(
+                  onPressed: () => _ensureStorageAvailable(),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  child: Text('Check Status', style: GoogleFonts.inter(fontSize: 11, color: AppColors.primaryLight)),
                 ),
               ],
             ),
-          );
-        }
+          ),
 
-        return ListView.builder(
+        // Search & Filter header
+        Container(
           padding: const EdgeInsets.all(16),
-          itemCount: visits.length,
-          itemBuilder: (context, index) {
-            final v = visits[index];
-            final isCurrentRecording =
-                _audioService.isRecording && _audioService.currentVisitId == v.id;
-
-            return Container(
-              margin: const EdgeInsets.only(bottom: 14),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceCard,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.surfaceBorder),
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            border: Border(bottom: BorderSide(color: AppColors.surfaceBorder)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SearchBarWidget(
+                hintText: 'Search visits by customer name or notes...',
+                onChanged: (val) => setState(() => _search = val.toLowerCase()),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          v.customerName,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: switch (v.status) {
-                            VisitStatus.visitCompleted =>
-                              AppColors.success.withAlpha(30),
-                            VisitStatus.visitInProgress =>
-                              AppColors.warning.withAlpha(30),
-                            VisitStatus.visitScheduled =>
-                              AppColors.info.withAlpha(30),
-                          },
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          v.status.label,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: switch (v.status) {
-                              VisitStatus.visitCompleted => AppColors.success,
-                              VisitStatus.visitInProgress => AppColors.warning,
-                              VisitStatus.visitScheduled => AppColors.info,
-                            },
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton.filledTonal(
-                        icon: const Icon(Icons.call_rounded, size: 18),
-                        style: IconButton.styleFrom(
-                          backgroundColor: AppColors.primary.withAlpha(40),
-                          foregroundColor: AppColors.primary,
-                        ),
-                        tooltip: 'Call Customer Confirmation',
-                        onPressed: () async {
-                          final res = await CallService.callCustomerById(
-                            v.customerId,
-                          );
-                          if (!res.success && context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(res.message),
-                                backgroundColor: AppColors.danger,
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Phone: ${v.maskedPhone}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                      fontFamily: 'monospace',
+              const SizedBox(height: 10),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _filterChip('All Visits', _statusFilter == null, () => setState(() => _statusFilter = null)),
+                    const SizedBox(width: 8),
+                    _filterChip(
+                      'Scheduled',
+                      _statusFilter == VisitStatus.visitScheduled,
+                      () => setState(() => _statusFilter = VisitStatus.visitScheduled),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Scheduled Time: ${dateFormat.format(v.scheduledAt)}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.info,
-                      fontWeight: FontWeight.w500,
+                    const SizedBox(width: 8),
+                    _filterChip(
+                      'In Progress',
+                      _statusFilter == VisitStatus.visitInProgress,
+                      () => setState(() => _statusFilter = VisitStatus.visitInProgress),
                     ),
-                  ),
-                  if (v.notes != null && v.notes!.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      'Notes: ${v.notes}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textMuted,
-                      ),
+                    const SizedBox(width: 8),
+                    _filterChip(
+                      'Completed',
+                      _statusFilter == VisitStatus.visitCompleted,
+                      () => setState(() => _statusFilter = VisitStatus.visitCompleted),
                     ),
                   ],
-                  if (isCurrentRecording) ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.danger.withAlpha(25),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.danger.withAlpha(80)),
-                      ),
-                      child: const Row(
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Visits List Stream
+        Expanded(
+          child: StreamBuilder<List<Visit>>(
+            stream: DatabaseService.getVisitsStream(outsideSalesId: currentUid),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: 4,
+                  itemBuilder: (context, index) => const SkeletonListTile(),
+                );
+              }
+
+              final allVisits = snapshot.data ?? [];
+              final filtered = allVisits.where((v) {
+                if (_statusFilter != null && v.status != _statusFilter) return false;
+                if (_search.isEmpty) return true;
+                return v.customerName.toLowerCase().contains(_search) ||
+                    v.maskedPhone.contains(_search) ||
+                    (v.notes ?? '').toLowerCase().contains(_search);
+              }).toList();
+
+              if (filtered.isEmpty) {
+                return EmptyStateWidget(
+                  icon: Icons.assignment_turned_in_outlined,
+                  title: 'No Visits Found',
+                  message: _search.isNotEmpty || _statusFilter != null
+                      ? 'No customer visits match the selected filter.'
+                      : 'You do not have any on-site customer visits assigned currently.',
+                );
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: filtered.length,
+                itemBuilder: (context, index) {
+                  final v = filtered[index];
+                  final isCurrentRecording =
+                      _audioService.isRecording && _audioService.currentVisitId == v.id;
+                  final initials = v.customerName.trim().isNotEmpty
+                      ? v.customerName.trim().split(' ').map((p) => p.isNotEmpty ? p[0] : '').take(2).join().toUpperCase()
+                      : '?';
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 14),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceCard,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: AppColors.surfaceBorder),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(35),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.mic, size: 16, color: AppColors.danger),
-                          SizedBox(width: 8),
-                          Text(
-                            'Audio recording active for this site visit...',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.danger,
-                              fontWeight: FontWeight.w500,
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundColor: AppColors.primary.withAlpha(35),
+                                child: Text(
+                                  initials,
+                                  style: GoogleFonts.sora(
+                                    color: AppColors.primaryLight,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          v.customerName,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.textPrimary,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        _buildVisitStatusPill(v.status),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.phone_outlined, size: 12, color: AppColors.textMuted),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          v.maskedPhone,
+                                          style: GoogleFonts.jetBrainsMono(
+                                            fontSize: 12,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Text('•', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                                        const SizedBox(width: 10),
+                                        const Icon(Icons.access_time_rounded, size: 12, color: AppColors.info),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          dateFormat.format(v.scheduledAt),
+                                          style: GoogleFonts.inter(
+                                            fontSize: 11,
+                                            color: AppColors.info,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton.filledTonal(
+                                icon: const Icon(Icons.call_rounded, size: 18),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: AppColors.primary.withAlpha(35),
+                                  foregroundColor: AppColors.primaryLight,
+                                ),
+                                tooltip: 'Call Customer Confirmation',
+                                onPressed: () async {
+                                  final res = await CallService.callCustomerById(v.customerId);
+                                  if (!res.success && context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(res.message),
+                                        backgroundColor: AppColors.danger,
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                          if (v.notes != null && v.notes!.isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceLight.withAlpha(100),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Notes: ${v.notes}',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
                             ),
+                          ],
+                          if (isCurrentRecording) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: AppColors.danger.withAlpha(25),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: AppColors.danger.withAlpha(90)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 10,
+                                    height: 10,
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.danger,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  const Icon(Icons.mic, size: 16, color: AppColors.danger),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Audio recording in progress for this visit...',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      color: AppColors.danger,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 16),
+                          const Divider(color: AppColors.surfaceBorder, height: 1),
+                          const SizedBox(height: 14),
+
+                          // Action Buttons with Lock Badges
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _wrapWithLockBadge(
+                                child: ElevatedButton.icon(
+                                  icon: const Icon(Icons.location_on_rounded, size: 15),
+                                  label: Text(
+                                    v.status == VisitStatus.visitInProgress ? 'In Progress' : 'Reached Location',
+                                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: v.status == VisitStatus.visitInProgress
+                                        ? AppColors.warning
+                                        : AppColors.primary,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                  onPressed: !_isStorageAvailable
+                                      ? () => _onReachedLocationTapped(v)
+                                      : (v.status == VisitStatus.visitScheduled
+                                          ? () => _onReachedLocationTapped(v)
+                                          : null),
+                                ),
+                              ),
+                              _wrapWithLockBadge(
+                                child: OutlinedButton.icon(
+                                  icon: const Icon(Icons.camera_alt_rounded, size: 15),
+                                  label: Text(
+                                    'Upload Selfie',
+                                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppColors.info,
+                                    side: BorderSide(color: AppColors.info.withAlpha(120)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                  onPressed: !_isStorageAvailable
+                                      ? () => _onUploadSelfieTapped(v)
+                                      : (v.status == VisitStatus.visitInProgress
+                                          ? () => _onUploadSelfieTapped(v)
+                                          : null),
+                                ),
+                              ),
+                              _wrapWithLockBadge(
+                                child: ElevatedButton.icon(
+                                  icon: const Icon(Icons.check_circle_rounded, size: 15),
+                                  label: Text(
+                                    'Completed Visit',
+                                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.success,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                  onPressed: !_isStorageAvailable
+                                      ? () => _onCompletedVisitTapped(v)
+                                      : (v.status == VisitStatus.visitInProgress
+                                          ? () => _onCompletedVisitTapped(v)
+                                          : null),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
-                  ],
-                  const SizedBox(height: 16),
-                  const Divider(height: 1),
-                  const SizedBox(height: 12),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
 
-                  // 3-Step Action Buttons (PDF Page 11) with Honest Storage Gate
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      // Step 1: Reached Location Button
-                      _wrapWithLockBadge(
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.location_on_rounded, size: 16),
-                          label: Text(
-                            v.status == VisitStatus.visitInProgress
-                                ? 'In Progress'
-                                : 'Reached Location',
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                v.status == VisitStatus.visitInProgress
-                                ? AppColors.warning
-                                : AppColors.primary,
-                          ),
-                          onPressed: !_isStorageAvailable
-                              ? () => _onReachedLocationTapped(v)
-                              : (v.status == VisitStatus.visitScheduled
-                                  ? () => _onReachedLocationTapped(v)
-                                  : null),
-                        ),
-                      ),
+  Widget _filterChip(String label, bool isSelected, VoidCallback onSelected) {
+    return GestureDetector(
+      onTap: onSelected,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.success.withAlpha(40) : AppColors.surfaceCard,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppColors.success : AppColors.surfaceBorder,
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
 
-                      // Step 2: Upload Selfie with Customer Button
-                      _wrapWithLockBadge(
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.camera_alt_rounded, size: 16),
-                          label: const Text('Upload Selfie'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.info,
-                            side: const BorderSide(color: AppColors.info),
-                          ),
-                          onPressed: !_isStorageAvailable
-                              ? () => _onUploadSelfieTapped(v)
-                              : (v.status == VisitStatus.visitInProgress
-                                  ? () => _onUploadSelfieTapped(v)
-                                  : null),
-                        ),
-                      ),
+  Widget _buildVisitStatusPill(VisitStatus status) {
+    Color bg;
+    Color fg;
+    String label;
+    switch (status) {
+      case VisitStatus.visitScheduled:
+        bg = AppColors.info.withAlpha(30);
+        fg = AppColors.info;
+        label = 'SCHEDULED';
+        break;
+      case VisitStatus.visitInProgress:
+        bg = AppColors.warning.withAlpha(30);
+        fg = AppColors.warning;
+        label = 'IN PROGRESS';
+        break;
+      case VisitStatus.visitCompleted:
+        bg = AppColors.success.withAlpha(30);
+        fg = AppColors.success;
+        label = 'COMPLETED';
+        break;
+    }
 
-                      // Step 3: Completed Visit Button
-                      _wrapWithLockBadge(
-                        child: ElevatedButton.icon(
-                          icon: const Icon(
-                            Icons.check_circle_rounded,
-                            size: 16,
-                          ),
-                          label: const Text('Completed Visit'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.success,
-                          ),
-                          onPressed: !_isStorageAvailable
-                              ? () => _onCompletedVisitTapped(v)
-                              : (v.status == VisitStatus.visitInProgress
-                                  ? () => _onCompletedVisitTapped(v)
-                                  : null),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: fg.withAlpha(80)),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.inter(
+          fontSize: 9,
+          fontWeight: FontWeight.w700,
+          color: fg,
+        ),
+      ),
     );
   }
 }
