@@ -11,8 +11,8 @@ class DemoAccountBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.surfaceLight.withAlpha(220),
         borderRadius: BorderRadius.circular(14),
@@ -43,21 +43,15 @@ class DemoAccountBanner extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                'Demo Accounts',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primaryLight,
-                  letterSpacing: 0.2,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                'Tap to autofill',
-                style: GoogleFonts.inter(
-                  fontSize: 11,
-                  color: AppColors.textMuted,
+              Expanded(
+                child: Text(
+                  'Demo Accounts (Autofill)',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primaryLight,
+                    letterSpacing: 0.2,
+                  ),
                 ),
               ),
             ],
@@ -71,25 +65,25 @@ class DemoAccountBanner extends StatelessWidget {
                 label: 'Admin',
                 color: AppColors.danger,
                 email: 'admin@demo.com',
-                password: '',
+                password: 'password123',
               ),
               _buildChip(
                 label: 'Executive',
                 color: AppColors.secondary,
                 email: 'executive@demo.com',
-                password: '',
+                password: 'password123',
               ),
               _buildChip(
                 label: 'Inside Sales',
                 color: AppColors.primary,
                 email: 'inside@demo.com',
-                password: '',
+                password: 'password123',
               ),
               _buildChip(
                 label: 'Outside Sales',
                 color: AppColors.success,
                 email: 'outside@demo.com',
-                password: '',
+                password: 'password123',
               ),
             ],
           ),
