@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../config/app_theme.dart';
 import '../../models/customer.dart';
 import '../../models/employee.dart';
-import '../../models/staff_directory.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../widgets/empty_state_widget.dart';
@@ -928,8 +927,8 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
           ),
         ),
         Expanded(
-          child: StreamBuilder<List<StaffDirectoryEntry>>(
-            stream: DatabaseService.getStaffDirectoryStream(roleFilter: _empFilter),
+          child: StreamBuilder<List<Employee>>(
+            stream: DatabaseService.getEmployeesStream(roleFilter: _empFilter),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return ListView.builder(
@@ -1561,8 +1560,8 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
         ),
         content: SizedBox(
           width: 400,
-          child: StreamBuilder<List<StaffDirectoryEntry>>(
-            stream: DatabaseService.getStaffDirectoryStream(
+          child: StreamBuilder<List<Employee>>(
+            stream: DatabaseService.getEmployeesStream(
               roleFilter: AppRole.insideSales,
               onlyActive: true,
             ),
@@ -1579,7 +1578,7 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Text(
-                    'No active inside sales personnel found in staff directory.',
+                    'No active inside sales personnel found.',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.inter(color: AppColors.textMuted, fontSize: 13),
                   ),

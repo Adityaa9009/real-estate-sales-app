@@ -3,29 +3,19 @@
 This is the shared source of truth. Do not change field names or status values without agreement from the team lead.
 
 ## `employees`
-Full employee profile (Admin or Self read-only; Admin-only update).
+Full employee profile (Active employees or Self read-only; Admin-only update).
 
 | Field | Type | Notes |
 |---|---|---|
 | `id` | string | Firebase Auth user ID |
 | `name` | string | Employee full name |
 | `email` | string | Unique login email |
-| `phone` | string | Employee phone number (PII) |
+| `phone` | string | Employee phone number |
 | `role` | string | `admin`, `executive`, `inside_sales`, or `outside_sales` |
 | `profileImageUrl` | string? | Private storage URL/path |
 | `active` | boolean | Disabled employees cannot use the app |
 | `createdAt` | timestamp | Creation date |
 | `dob` | string? | Date of birth |
-
-## `staff_directory`
-Public staff directory for assignment pickers (accessible by all active employees, Admin-only or Executive non-admin creation, Admin-only update). Contains zero sensitive employee PII.
-
-| Field | Type | Notes |
-|---|---|---|
-| `id` | string | Firebase Auth user ID |
-| `name` | string | Employee name |
-| `role` | string | `admin`, `executive`, `inside_sales`, or `outside_sales` |
-| `active` | boolean | Active status |
 
 ## `customers`
 Root customer documents must NEVER contain raw phone numbers.

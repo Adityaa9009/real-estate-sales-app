@@ -33,24 +33,13 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // 1. Employee Records (Admin or Self read-only)
+    // 1. Employee Records
     // ==========================================
     match /employees/{employeeId} {
-      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == employeeId);
+      allow read: if isActiveEmployee() || (isSignedIn() && request.auth.uid == employeeId);
       allow create: if (isAdmin() && request.resource.data.role in ['admin', 'executive', 'inside_sales', 'outside_sales']) ||
                       (isExecutive() && request.resource.data.role in ['inside_sales', 'outside_sales'] && request.auth.uid != employeeId);
       // Absolute Lockout: Executives have ZERO update permissions on /employees
-      allow update: if isAdmin();
-      allow delete: if false;
-    }
-
-    // ==========================================
-    // 1b. Staff Directory (Team-wide assignment pickers)
-    // ==========================================
-    match /staff_directory/{employeeId} {
-      allow read: if isActiveEmployee();
-      allow create: if (isAdmin() && request.resource.data.role in ['admin', 'executive', 'inside_sales', 'outside_sales']) ||
-                      (isExecutive() && request.resource.data.role in ['inside_sales', 'outside_sales'] && request.auth.uid != employeeId);
       allow update: if isAdmin();
       allow delete: if false;
     }
@@ -91,8 +80,8 @@ service cloud.firestore {
             (resource.data.status == 'interested' &&
              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'assignedOutsideSalesId', 'assignedOutsideSalesName', 'activeVisitId']) &&
              request.resource.data.status == 'visit_scheduled' &&
-             get(/databases/$(database)/documents/staff_directory/$(request.resource.data.assignedOutsideSalesId)).data.role == 'outside_sales' &&
-             get(/databases/$(database)/documents/staff_directory/$(request.resource.data.assignedOutsideSalesId)).data.active == true &&
+             get(/databases/$(database)/documents/employees/$(request.resource.data.assignedOutsideSalesId)).data.role == 'outside_sales' &&
+             get(/databases/$(database)/documents/employees/$(request.resource.data.assignedOutsideSalesId)).data.active == true &&
              getAfter(/databases/$(database)/documents/visits/$(request.resource.data.activeVisitId)).data.customerId == customerId &&
              getAfter(/databases/$(database)/documents/visits/$(request.resource.data.activeVisitId)).data.insideSalesId == request.auth.uid &&
              getAfter(/databases/$(database)/documents/visits/$(request.resource.data.activeVisitId)).data.outsideSalesId == request.resource.data.assignedOutsideSalesId &&

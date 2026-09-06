@@ -8,7 +8,6 @@ import '../models/customer.dart';
 import '../models/visit.dart';
 import '../models/attendance.dart';
 import '../models/broadcast_message.dart';
-import '../models/staff_directory.dart';
 
 class EmployeeRegistrationException implements Exception {
   final String uid;
@@ -21,26 +20,6 @@ class EmployeeRegistrationException implements Exception {
 
   @override
   String toString() => message;
-}
-
-class StaffDirectoryMigrationReport {
-  final int totalEmployees;
-  final int migrated;
-  final int alreadyExisted;
-  final int failed;
-  final List<String> errors;
-
-  const StaffDirectoryMigrationReport({
-    required this.totalEmployees,
-    required this.migrated,
-    required this.alreadyExisted,
-    required this.failed,
-    required this.errors,
-  });
-
-  @override
-  String toString() =>
-      'StaffDirectoryMigrationReport: total=$totalEmployees, migrated=$migrated, alreadyExisted=$alreadyExisted, failed=$failed, errors=${errors.length}';
 }
 
 class CustomerPhoneMigrationReport {
@@ -91,27 +70,7 @@ class DatabaseService {
     );
   }
 
-  /// Stream of staff directory entries (scoped public team directory)
-  static Stream<List<StaffDirectoryEntry>> getStaffDirectoryStream({
-    AppRole? roleFilter,
-    bool onlyActive = true,
-  }) {
-    Query<Map<String, dynamic>> query =
-        _firestore.collection('staff_directory');
-    if (roleFilter != null) {
-      query = query.where('role', isEqualTo: roleFilter.firestoreValue);
-    }
-    if (onlyActive) {
-      query = query.where('active', isEqualTo: true);
-    }
-    return query.snapshots().map(
-      (snapshot) => snapshot.docs
-          .map((doc) => StaffDirectoryEntry.fromFirestore(doc))
-          .toList(),
-    );
-  }
-
-  /// Adds an employee: creates Auth user and atomically populates /employees and /staff_directory
+  /// Adds an employee: creates Auth user and populates /employees
   static Future<void> registerNewEmployee({
     required String name,
     required String email,
@@ -148,31 +107,20 @@ class DatabaseService {
       }
     }
 
-    // 2. Atomically write to /employees and /staff_directory
-    final batch = _firestore.batch();
+    // 2. Write to /employees
     final empRef = _firestore.collection('employees').doc(employeeId);
-    final dirRef = _firestore.collection('staff_directory').doc(employeeId);
-
-    batch.set(empRef, {
-      'id': employeeId,
-      'name': name.trim(),
-      'email': cleanEmail,
-      'phone': phone.trim(),
-      'role': role.firestoreValue,
-      'active': true,
-      'createdAt': FieldValue.serverTimestamp(),
-      if (dob != null && dob.trim().isNotEmpty) 'dob': dob.trim(),
-    });
-
-    batch.set(dirRef, {
-      'id': employeeId,
-      'name': name.trim(),
-      'role': role.firestoreValue,
-      'active': true,
-    });
 
     try {
-      await batch.commit();
+      await empRef.set({
+        'id': employeeId,
+        'name': name.trim(),
+        'email': cleanEmail,
+        'phone': phone.trim(),
+        'role': role.firestoreValue,
+        'active': true,
+        'createdAt': FieldValue.serverTimestamp(),
+        if (dob != null && dob.trim().isNotEmpty) 'dob': dob.trim(),
+      });
     } catch (firestoreError) {
       // Report orphaned auth account honestly for Admin recovery
       throw EmployeeRegistrationException(
@@ -184,68 +132,14 @@ class DatabaseService {
     }
   }
 
-  /// Deactivates an employee atomically across /employees and /staff_directory
+  /// Deactivates an employee in /employees
   static Future<void> deactivateEmployee(String id) async {
-    final batch = _firestore.batch();
-    batch.update(_firestore.collection('employees').doc(id), {'active': false});
-    batch.update(_firestore.collection('staff_directory').doc(id), {'active': false});
-    await batch.commit();
+    await _firestore.collection('employees').doc(id).update({'active': false});
   }
 
-  /// Reactivates an employee atomically across /employees and /staff_directory
+  /// Reactivates an employee in /employees
   static Future<void> reactivateEmployee(String id) async {
-    final batch = _firestore.batch();
-    batch.update(_firestore.collection('employees').doc(id), {'active': true});
-    batch.update(_firestore.collection('staff_directory').doc(id), {'active': true});
-    await batch.commit();
-  }
-
-  /// Admin-only migration to backfill /staff_directory entries for existing employees
-  static Future<StaffDirectoryMigrationReport> migrateStaffDirectory() async {
-    final employeesSnap = await _firestore.collection('employees').get();
-    int total = employeesSnap.docs.length;
-    int migrated = 0;
-    int alreadyExisted = 0;
-    int failed = 0;
-    final List<String> errors = [];
-
-    for (final doc in employeesSnap.docs) {
-      final data = doc.data();
-      final empId = doc.id;
-      try {
-        final dirDoc =
-            await _firestore.collection('staff_directory').doc(empId).get();
-        if (dirDoc.exists) {
-          alreadyExisted++;
-          continue;
-        }
-
-        final name = data['name'] as String? ?? 'Staff Member';
-        final roleStr = data['role'] as String?;
-        final active = data['active'] as bool? ?? true;
-
-        final role = AppRoleExtension.fromStringOrThrow(roleStr);
-
-        await _firestore.collection('staff_directory').doc(empId).set({
-          'id': empId,
-          'name': name,
-          'role': role.firestoreValue,
-          'active': active,
-        });
-        migrated++;
-      } catch (e) {
-        failed++;
-        errors.add('Failed to migrate $empId: $e');
-      }
-    }
-
-    return StaffDirectoryMigrationReport(
-      totalEmployees: total,
-      migrated: migrated,
-      alreadyExisted: alreadyExisted,
-      failed: failed,
-      errors: errors,
-    );
+    await _firestore.collection('employees').doc(id).update({'active': true});
   }
 
   static Future<void> updateEmployee(
@@ -253,18 +147,6 @@ class DatabaseService {
     Map<String, dynamic> data,
   ) async {
     await _firestore.collection('employees').doc(id).update(data);
-    if (data.containsKey('name') ||
-        data.containsKey('role') ||
-        data.containsKey('active')) {
-      final dirData = <String, dynamic>{};
-      if (data.containsKey('name')) dirData['name'] = data['name'];
-      if (data.containsKey('role')) dirData['role'] = data['role'];
-      if (data.containsKey('active')) dirData['active'] = data['active'];
-      await _firestore
-          .collection('staff_directory')
-          .doc(id)
-          .set(dirData, SetOptions(merge: true));
-    }
   }
 
   // ================= CUSTOMERS & CONTACT PRIVACY =================

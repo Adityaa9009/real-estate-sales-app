@@ -60,12 +60,6 @@ async function runRulesTests() {
           active: s.active,
           email: s.email,
         });
-        await db.collection('staff_directory').doc(s.id).set({
-          id: s.id,
-          name: s.name,
-          role: s.role,
-          active: s.active,
-        });
       }
     });
 
@@ -123,12 +117,6 @@ async function runRulesTests() {
         active: true,
         dob: '1995-05-12',
       });
-      await db.collection('staff_directory').doc('emp-sensitive').set({
-        id: 'emp-sensitive',
-        name: 'Rohan Sharma',
-        role: 'inside_sales',
-        active: true,
-      });
     });
 
     await test('Admin CAN read any employee document in /employees', async () => {
@@ -139,19 +127,13 @@ async function runRulesTests() {
       await assertSucceeds(insideDb.collection('employees').doc('inside-1').get());
     });
 
-    await test('Non-admin employee CANNOT read another employee document in /employees (PII protection)', async () => {
-      await assertFails(insideDb.collection('employees').doc('emp-sensitive').get());
-      await assertFails(execDb.collection('employees').doc('emp-sensitive').get());
+    await test('Active employee CAN read /employees for assignments', async () => {
+      await assertSucceeds(insideDb.collection('employees').doc('emp-sensitive').get());
+      await assertSucceeds(execDb.collection('employees').doc('emp-sensitive').get());
     });
 
-    await test('Active employee CAN read /staff_directory for assignments', async () => {
-      await assertSucceeds(insideDb.collection('staff_directory').doc('emp-sensitive').get());
-      await assertSucceeds(execDb.collection('staff_directory').doc('emp-sensitive').get());
-    });
-
-    await test('Unauthenticated client CANNOT read employee directory or staff directory', async () => {
+    await test('Unauthenticated client CANNOT read employee directory', async () => {
       await assertFails(unauthedDb.collection('employees').doc('emp-sensitive').get());
-      await assertFails(unauthedDb.collection('staff_directory').doc('emp-sensitive').get());
     });
 
     await test('Executive CANNOT escalate role to admin or executive on create', async () => {

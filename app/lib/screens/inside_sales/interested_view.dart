@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../config/app_theme.dart';
 import '../../models/customer.dart';
 import '../../models/employee.dart';
-import '../../models/staff_directory.dart';
 import '../../services/database_service.dart';
 import '../../widgets/customer_tile.dart';
 import '../../widgets/empty_state_widget.dart';
@@ -135,8 +134,8 @@ class InterestedView extends StatelessWidget {
         ),
         content: SizedBox(
           width: 400,
-          child: StreamBuilder<List<StaffDirectoryEntry>>(
-            stream: DatabaseService.getStaffDirectoryStream(
+          child: StreamBuilder<List<Employee>>(
+            stream: DatabaseService.getEmployeesStream(
               roleFilter: AppRole.outsideSales,
               onlyActive: true,
             ),

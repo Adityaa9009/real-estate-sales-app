@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import '../../config/app_theme.dart';
 import '../../models/customer.dart';
 import '../../models/employee.dart';
-import '../../models/staff_directory.dart';
 import '../../services/database_service.dart';
 import '../../services/whatsapp_service.dart';
 import '../../widgets/customer_tile.dart';
@@ -315,8 +314,8 @@ class _CallsViewState extends State<CallsView> {
                   style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 10),
-                StreamBuilder<List<StaffDirectoryEntry>>(
-                  stream: DatabaseService.getStaffDirectoryStream(
+                StreamBuilder<List<Employee>>(
+                  stream: DatabaseService.getEmployeesStream(
                     roleFilter: AppRole.outsideSales,
                     onlyActive: true,
                   ),

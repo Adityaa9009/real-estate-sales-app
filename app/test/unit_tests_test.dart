@@ -5,7 +5,6 @@ import 'package:real_estate_sales_app/models/customer.dart';
 import 'package:real_estate_sales_app/models/visit.dart';
 import 'package:real_estate_sales_app/models/attendance.dart';
 import 'package:real_estate_sales_app/models/customer_assignment.dart';
-import 'package:real_estate_sales_app/models/staff_directory.dart';
 import 'package:real_estate_sales_app/services/call_service.dart';
 import 'package:real_estate_sales_app/services/location_service.dart';
 import 'package:real_estate_sales_app/services/database_service.dart';
@@ -323,80 +322,6 @@ void main() {
       expect(summary.contains('12/12 migrated'), isTrue);
       expect(summary.contains('5/6 migrated'), isTrue);
       expect(summary.contains('errors: 1'), isTrue);
-    });
-  });
-
-  group('StaffDirectoryEntry serialization and validation tests', () {
-    test('serializes to Firestore map correctly', () {
-      const entry = StaffDirectoryEntry(
-        id: 'outside-1',
-        name: 'Rahul Sharma',
-        role: AppRole.outsideSales,
-        active: true,
-      );
-
-      final map = entry.toFirestore();
-      expect(map['id'], 'outside-1');
-      expect(map['name'], 'Rahul Sharma');
-      expect(map['role'], 'outside_sales');
-      expect(map['active'], isTrue);
-      // Ensure no PII like phone, email, or dob is included
-      expect(map.containsKey('phone'), isFalse);
-      expect(map.containsKey('email'), isFalse);
-      expect(map.containsKey('dob'), isFalse);
-    });
-
-    test('deserializes from Map correctly', () {
-      final entry = StaffDirectoryEntry.fromMap('inside-1', {
-        'name': 'Priya Singh',
-        'role': 'inside_sales',
-        'active': true,
-      });
-
-      expect(entry.id, 'inside-1');
-      expect(entry.name, 'Priya Singh');
-      expect(entry.role, AppRole.insideSales);
-      expect(entry.active, isTrue);
-    });
-
-    test('fails closed when role is missing or invalid', () {
-      expect(
-        () => StaffDirectoryEntry.fromMap('bad-1', {
-          'name': 'Invalid Role',
-          'role': 'super_admin',
-          'active': true,
-        }),
-        throwsA(isA<FormatException>()),
-      );
-      expect(
-        () => StaffDirectoryEntry.fromMap('bad-2', {
-          'name': 'Missing Role',
-          'active': true,
-        }),
-        throwsA(isA<FormatException>()),
-      );
-    });
-  });
-
-  group('StaffDirectoryMigrationReport tests', () {
-    test('tracks totals, migrated, existed, failed and errors', () {
-      const report = StaffDirectoryMigrationReport(
-        totalEmployees: 10,
-        migrated: 6,
-        alreadyExisted: 3,
-        failed: 1,
-        errors: ['Failed for employee emp-9: network timeout'],
-      );
-
-      expect(report.totalEmployees, 10);
-      expect(report.migrated, 6);
-      expect(report.alreadyExisted, 3);
-      expect(report.failed, 1);
-      expect(report.errors.length, 1);
-      expect(report.toString().contains('total=10'), isTrue);
-      expect(report.toString().contains('migrated=6'), isTrue);
-      expect(report.toString().contains('alreadyExisted=3'), isTrue);
-      expect(report.toString().contains('failed=1'), isTrue);
     });
   });
 
