@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import '../models/customer.dart';
 import '../config/app_theme.dart';
@@ -21,187 +22,270 @@ class CustomerTile extends StatelessWidget {
     this.showActions = true,
   });
 
+  String _getInitials(String name) {
+    final parts = name.trim().split(' ');
+    if (parts.isEmpty || parts.first.isEmpty) return 'C';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return (parts.first.substring(0, 1) + parts.last.substring(0, 1)).toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final initials = _getInitials(customer.name);
+    final statusColor = customer.status.color;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surfaceCard,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.surfaceBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  customer.name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: customer.status.color.withAlpha(30),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: customer.status.color.withAlpha(100),
-                  ),
-                ),
-                child: Text(
-                  customer.status.label,
-                  style: TextStyle(
-                    color: customer.status.color,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.surfaceBorder, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(35),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          const SizedBox(height: 6),
-          Row(
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
-                Icons.phone_outlined,
-                size: 14,
-                color: AppColors.textMuted,
+              // Header Row: Avatar + Name + Status Pill
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: statusColor.withAlpha(30),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: statusColor.withAlpha(90), width: 1),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      initials,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          customer.name,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.phone_outlined,
+                              size: 13,
+                              color: AppColors.textMuted,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              customer.maskedPhone,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor.withAlpha(25),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: statusColor.withAlpha(100), width: 1),
+                    ),
+                    child: Text(
+                      customer.status.label,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 6),
-              Text(
-                'Phone: ${customer.maskedPhone}',
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.textSecondary,
-                  fontFamily: 'monospace',
-                ),
-              ),
-              if (customer.budget != null) ...[
-                const SizedBox(width: 12),
-                const Text('•', style: TextStyle(color: AppColors.textMuted)),
-                const SizedBox(width: 12),
-                Text(
-                  customer.budget!,
-                  style: const TextStyle(fontSize: 12, color: AppColors.info),
+
+              // Metadata Pills: Budget & Notes
+              if (customer.budget != null || customer.propertyNotes != null) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    if (customer.budget != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.info.withAlpha(25),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: AppColors.info.withAlpha(70)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.currency_rupee_rounded, size: 12, color: AppColors.info),
+                            const SizedBox(width: 2),
+                            Text(
+                              customer.budget!,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.info,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (customer.propertyNotes != null)
+                      Text(
+                        customer.propertyNotes!,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textMuted,
+                          fontSize: 12,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
                 ),
               ],
-            ],
-          ),
-          if (customer.propertyNotes != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              customer.propertyNotes!,
-              style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-          if (showActions) ...[
-            const SizedBox(height: 12),
-            const Divider(height: 1),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                // Real Call Button (fetches private contact on-demand)
-                IconButton.filledTonal(
-                  icon: const Icon(Icons.call_rounded, size: 18),
-                  tooltip: 'Call Customer',
-                  style: IconButton.styleFrom(
-                    backgroundColor: AppColors.primary.withAlpha(40),
-                    foregroundColor: AppColors.primary,
-                  ),
-                  onPressed: () async {
-                    final res = await CallService.callCustomerById(customer.id);
-                    if (!res.success && context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(res.message),
-                          backgroundColor: AppColors.danger,
-                        ),
-                      );
-                    }
-                  },
-                ),
-                const SizedBox(width: 8),
 
-                // WhatsApp Button (fetches private contact on-demand)
-                IconButton.filledTonal(
-                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
-                  tooltip: 'WhatsApp Message',
-                  style: IconButton.styleFrom(
-                    backgroundColor: const Color(0xFF25D366).withAlpha(40),
-                    foregroundColor: const Color(0xFF25D366),
-                  ),
-                  onPressed: () async {
-                    final res =
-                        await WhatsAppService.sendInterestedMessageByCustomerId(
+              // Actions Footer
+              if (showActions) ...[
+                const SizedBox(height: 12),
+                const Divider(height: 1, color: AppColors.surfaceBorder),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    // Call Button
+                    IconButton.filledTonal(
+                      icon: const Icon(Icons.call_rounded, size: 17),
+                      tooltip: 'Call Customer',
+                      style: IconButton.styleFrom(
+                        backgroundColor: AppColors.primary.withAlpha(35),
+                        foregroundColor: AppColors.primary,
+                        padding: const EdgeInsets.all(8),
+                      ),
+                      onPressed: () async {
+                        final res = await CallService.callCustomerById(customer.id);
+                        if (!res.success && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(res.message),
+                              backgroundColor: AppColors.danger,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 8),
+
+                    // WhatsApp Button
+                    IconButton.filledTonal(
+                      icon: const Icon(Icons.chat_bubble_outline_rounded, size: 17),
+                      tooltip: 'WhatsApp Message',
+                      style: IconButton.styleFrom(
+                        backgroundColor: const Color(0xFF25D366).withAlpha(35),
+                        foregroundColor: const Color(0xFF25D366),
+                        padding: const EdgeInsets.all(8),
+                      ),
+                      onPressed: () async {
+                        final res = await WhatsAppService.sendInterestedMessageByCustomerId(
                           customerId: customer.id,
                           customerName: customer.name,
                         );
-                    if (!res.success && context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(res.message),
-                          backgroundColor: AppColors.danger,
+                        if (!res.success && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(res.message),
+                              backgroundColor: AppColors.danger,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                    const Spacer(),
+
+                    // Mark Interested Action
+                    if (onMarkInterested != null)
+                      TextButton.icon(
+                        onPressed: onMarkInterested,
+                        icon: const Icon(Icons.thumb_up_alt_rounded, size: 15),
+                        label: const Text('Interested'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.success,
+                          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                          visualDensity: VisualDensity.compact,
                         ),
-                      );
-                    }
-                  },
-                ),
-                const Spacer(),
-
-                // Mark Interested Action
-                if (onMarkInterested != null)
-                  TextButton.icon(
-                    onPressed: onMarkInterested,
-                    icon: const Icon(Icons.thumb_up_alt_rounded, size: 16),
-                    label: const Text('Interested'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.success,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-
-                // Mark Not Interested Action
-                if (onMarkNotInterested != null)
-                  TextButton.icon(
-                    onPressed: onMarkNotInterested,
-                    icon: const Icon(Icons.thumb_down_alt_rounded, size: 16),
-                    label: const Text('Not Interested'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.danger,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-
-                // Schedule Visit Action
-                if (onScheduleVisit != null)
-                  ElevatedButton.icon(
-                    onPressed: onScheduleVisit,
-                    icon: const Icon(Icons.calendar_month_rounded, size: 15),
-                    label: const Text('Schedule Visit'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.secondary,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
                       ),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
+
+                    // Mark Not Interested Action
+                    if (onMarkNotInterested != null)
+                      TextButton.icon(
+                        onPressed: onMarkNotInterested,
+                        icon: const Icon(Icons.thumb_down_alt_rounded, size: 15),
+                        label: const Text('Not Interested'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.danger,
+                          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+
+                    // Schedule Visit Action
+                    if (onScheduleVisit != null)
+                      ElevatedButton.icon(
+                        onPressed: onScheduleVisit,
+                        icon: const Icon(Icons.calendar_month_rounded, size: 14),
+                        label: const Text('Schedule Visit'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.secondary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                  ],
+                ),
               ],
-            ),
-          ],
-        ],
+            ],
+          ),
+        ),
       ),
-    );
+    ).animate().fadeIn(duration: 250.ms).slideY(begin: 0.05, end: 0);
   }
 }
+
