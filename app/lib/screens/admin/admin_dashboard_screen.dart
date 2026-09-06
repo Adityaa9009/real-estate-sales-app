@@ -255,30 +255,34 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   return Row(
                     children: [
                       Expanded(
+                        flex: 10,
                         child: MetricCard(
                           title: 'Total Employees',
                           value: '$totalEmployees',
-                          icon: Icons.badge_outlined,
+                          icon: Icons.badge_rounded,
                           accentColor: AppColors.primary,
                           onTap: () => setState(() => _currentTabIndex = 0),
                         ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
+                        flex: 13,
                         child: MetricCard(
-                          title: 'Today Customers',
+                          title: 'Total Customers',
                           value: '$totalCustomers',
-                          icon: Icons.people_alt_outlined,
+                          icon: Icons.people_alt_rounded,
                           accentColor: AppColors.info,
+                          isPrimary: true,
                           onTap: () => setState(() => _currentTabIndex = 1),
                         ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
+                        flex: 10,
                         child: MetricCard(
                           title: 'Interested',
                           value: '$interested',
-                          icon: Icons.thumb_up_alt_outlined,
+                          icon: Icons.thumb_up_alt_rounded,
                           accentColor: AppColors.success,
                           onTap: () => setState(() => _currentTabIndex = 1),
                         ),

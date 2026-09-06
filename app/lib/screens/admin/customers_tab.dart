@@ -403,11 +403,7 @@ class _CustomersTabState extends State<CustomersTab> {
         .toList();
 
     return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.surfaceBorder),
-      ),
+      decoration: CardStyles.primary(borderRadius: 16),
       child: Column(
         children: [
           InkWell(

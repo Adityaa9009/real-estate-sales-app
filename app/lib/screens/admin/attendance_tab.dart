@@ -94,9 +94,7 @@ class _AttendanceTabState extends State<AttendanceTab> {
                         return Container(
                           margin: const EdgeInsets.only(bottom: 10),
                           padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceCard,
-                            borderRadius: BorderRadius.circular(14),
+                          decoration: CardStyles.secondary(borderRadius: 14).copyWith(
                             border: Border.all(
                               color: isApproved
                                   ? AppColors.surfaceBorder
@@ -276,11 +274,7 @@ class _AttendanceTabState extends State<AttendanceTab> {
     final maxY = (max(approved, rejected) * 1.3).toDouble().clamp(4.0, 1000.0);
 
     return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.surfaceBorder),
-      ),
+      decoration: CardStyles.primary(borderRadius: 16),
       child: Column(
         children: [
           InkWell(
