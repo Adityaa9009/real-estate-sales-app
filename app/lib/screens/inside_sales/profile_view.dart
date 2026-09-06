@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../config/app_theme.dart';
 import '../../models/employee.dart';
 import '../../services/auth_service.dart';
@@ -28,27 +29,45 @@ class ProfileView extends StatelessWidget {
                   shape: BoxShape.circle,
                   border: Border.all(color: AppColors.surfaceBorder, width: 3),
                 ),
-                child: const Icon(Icons.person_rounded, size: 60, color: Colors.white),
+                child: const Icon(
+                  Icons.person_rounded,
+                  size: 60,
+                  color: Colors.white,
+                ),
               ),
               const SizedBox(height: 20),
               Text(
                 'Username: ${emp?.name ?? "Employee"}',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
-                'Email: ${emp?.email ?? "inside.sales@realestate.com"}',
-                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                'Email: ${emp?.email ?? "N/A"}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
-                'Phone: ${emp?.phone ?? "9876543210"}',
-                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                'Phone: ${emp?.phone ?? "N/A"}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 'Role: ${emp?.role.label ?? "Inside Sales"}',
-                style: const TextStyle(fontSize: 13, color: AppColors.primaryLight, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.primaryLight,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 32),
               SizedBox(
@@ -56,7 +75,9 @@ class ProfileView extends StatelessWidget {
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.logout_rounded, size: 18),
                   label: const Text('Logout'),
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7C4DFF)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7C4DFF),
+                  ),
                   onPressed: () async {
                     await AuthService.signOut();
                     if (context.mounted) {

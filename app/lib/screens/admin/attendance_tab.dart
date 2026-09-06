@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import '../../config/app_theme.dart';
 import '../../models/attendance.dart';
 import '../../services/database_service.dart';
@@ -18,17 +19,19 @@ class AttendanceTab extends StatelessWidget {
 
         final logs = snapshot.data ?? [];
         if (logs.isEmpty) {
-          return Center(
+          return const Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.co_present_rounded, size: 54, color: AppColors.textMuted),
-                const SizedBox(height: 12),
-                const Text('No attendance records logged.', style: TextStyle(color: AppColors.textSecondary)),
-                const SizedBox(height: 12),
-                ElevatedButton(
-                  onPressed: () => DatabaseService.seedDemoData(),
-                  child: const Text('Seed Sample Attendance'),
+                Icon(
+                  Icons.co_present_rounded,
+                  size: 54,
+                  color: AppColors.textMuted,
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'No attendance records logged.',
+                  style: TextStyle(color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -53,11 +56,17 @@ class AttendanceTab extends StatelessWidget {
               child: Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: item.loginAllowed ? AppColors.success.withAlpha(35) : AppColors.danger.withAlpha(35),
+                    backgroundColor: item.loginAllowed
+                        ? AppColors.success.withAlpha(35)
+                        : AppColors.danger.withAlpha(35),
                     radius: 18,
                     child: Icon(
-                      item.loginAllowed ? Icons.check_circle_outline_rounded : Icons.block_rounded,
-                      color: item.loginAllowed ? AppColors.success : AppColors.danger,
+                      item.loginAllowed
+                          ? Icons.check_circle_outline_rounded
+                          : Icons.block_rounded,
+                      color: item.loginAllowed
+                          ? AppColors.success
+                          : AppColors.danger,
                       size: 18,
                     ),
                   ),
@@ -67,31 +76,52 @@ class AttendanceTab extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          item.employeeName ?? item.employeeEmail ?? 'Staff ID: ${item.employeeId}',
-                          style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary, fontSize: 14),
+                          item.employeeName ??
+                              item.employeeEmail ??
+                              'Staff ID: ${item.employeeId}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                            fontSize: 14,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Login: ${dateFormat.format(item.loginAt)}',
-                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                         if (item.logoutAt != null)
                           Text(
                             'Logout: ${dateFormat.format(item.logoutAt!)} (Logged: ${item.workingDuration.inHours}h ${item.workingDuration.inMinutes % 60}m)',
-                            style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textMuted,
+                            ),
                           )
                         else
                           const Text(
                             'Currently Active in Office',
-                            style: TextStyle(fontSize: 11, color: AppColors.success, fontWeight: FontWeight.w500),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.success,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: item.loginAllowed ? AppColors.success.withAlpha(25) : AppColors.danger.withAlpha(25),
+                      color: item.loginAllowed
+                          ? AppColors.success.withAlpha(25)
+                          : AppColors.danger.withAlpha(25),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -99,7 +129,9 @@ class AttendanceTab extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: item.loginAllowed ? AppColors.success : AppColors.danger,
+                        color: item.loginAllowed
+                            ? AppColors.success
+                            : AppColors.danger,
                       ),
                     ),
                   ),

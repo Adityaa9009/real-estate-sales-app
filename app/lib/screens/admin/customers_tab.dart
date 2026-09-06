@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../config/app_theme.dart';
 import '../../models/customer.dart';
 import '../../models/employee.dart';
@@ -22,15 +23,22 @@ class _CustomersTabState extends State<CustomersTab> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceCard,
-        title: Text('Assign ${customer.name} to Inside Sales', style: const TextStyle(fontSize: 16, color: AppColors.textPrimary)),
+        title: Text(
+          'Assign ${customer.name} to Inside Sales',
+          style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
+        ),
         content: SizedBox(
           width: 400,
           child: StreamBuilder<List<Employee>>(
-            stream: DatabaseService.getEmployeesStream(roleFilter: AppRole.insideSales),
+            stream: DatabaseService.getEmployeesStream(
+              roleFilter: AppRole.insideSales,
+            ),
             builder: (context, snapshot) {
               final insideStaff = snapshot.data ?? [];
               if (insideStaff.isEmpty) {
-                return const Text('No active Inside Sales employees found. Please add or seed staff first.');
+                return const Text(
+                  'No active Inside Sales employees found. Please add or seed staff first.',
+                );
               }
 
               return ListView.separated(
@@ -44,14 +52,33 @@ class _CustomersTabState extends State<CustomersTab> {
                     leading: const CircleAvatar(
                       backgroundColor: AppColors.primary,
                       radius: 16,
-                      child: Icon(Icons.headset_mic_rounded, color: Colors.white, size: 16),
+                      child: Icon(
+                        Icons.headset_mic_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
                     ),
-                    title: Text(emp.name, style: const TextStyle(fontSize: 14, color: AppColors.textPrimary)),
-                    subtitle: Text(emp.phone, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                    title: Text(
+                      emp.name,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    subtitle: Text(
+                      emp.phone,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                     trailing: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
                         visualDensity: VisualDensity.compact,
                       ),
                       onPressed: () async {
@@ -71,7 +98,10 @@ class _CustomersTabState extends State<CustomersTab> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
         ],
       ),
     );
@@ -88,34 +118,70 @@ class _CustomersTabState extends State<CustomersTab> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceCard,
-        title: const Text('Add New Customer Lead', style: TextStyle(color: AppColors.textPrimary)),
+        title: const Text(
+          'Add New Customer Lead',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Customer Name')),
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Customer Name'),
+              ),
               const SizedBox(height: 10),
-              TextField(controller: phoneController, decoration: const InputDecoration(labelText: 'Phone Number')),
+              TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(labelText: 'Phone Number'),
+              ),
               const SizedBox(height: 10),
-              TextField(controller: emailController, decoration: const InputDecoration(labelText: 'Email (Optional)')),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email (Optional)',
+                ),
+              ),
               const SizedBox(height: 10),
-              TextField(controller: budgetController, decoration: const InputDecoration(labelText: 'Budget / Property Type')),
+              TextField(
+                controller: budgetController,
+                decoration: const InputDecoration(
+                  labelText: 'Budget / Property Type',
+                ),
+              ),
               const SizedBox(height: 10),
-              TextField(controller: notesController, decoration: const InputDecoration(labelText: 'Notes / Preferences')),
+              TextField(
+                controller: notesController,
+                decoration: const InputDecoration(
+                  labelText: 'Notes / Preferences',
+                ),
+              ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () async {
-              if (nameController.text.trim().isEmpty || phoneController.text.trim().isEmpty) return;
+              if (nameController.text.trim().isEmpty ||
+                  phoneController.text.trim().isEmpty) {
+                return;
+              }
               await DatabaseService.addCustomer(
                 name: nameController.text.trim(),
                 phone: phoneController.text.trim(),
-                email: emailController.text.trim().isEmpty ? null : emailController.text.trim(),
-                budget: budgetController.text.trim().isEmpty ? null : budgetController.text.trim(),
-                propertyNotes: notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+                email: emailController.text.trim().isEmpty
+                    ? null
+                    : emailController.text.trim(),
+                budget: budgetController.text.trim().isEmpty
+                    ? null
+                    : budgetController.text.trim(),
+                propertyNotes: notesController.text.trim().isEmpty
+                    ? null
+                    : notesController.text.trim(),
               );
               if (ctx.mounted) Navigator.pop(ctx);
             },
@@ -139,7 +205,8 @@ class _CustomersTabState extends State<CustomersTab> {
                   Expanded(
                     child: SearchBarWidget(
                       hintText: 'Search customer name, budget, or notes...',
-                      onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
+                      onChanged: (val) =>
+                          setState(() => _searchQuery = val.toLowerCase()),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -174,7 +241,9 @@ class _CustomersTabState extends State<CustomersTab> {
         ),
         Expanded(
           child: StreamBuilder<List<Customer>>(
-            stream: DatabaseService.getCustomersStream(statusFilter: _selectedStatusFilter),
+            stream: DatabaseService.getCustomersStream(
+              statusFilter: _selectedStatusFilter,
+            ),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -183,22 +252,26 @@ class _CustomersTabState extends State<CustomersTab> {
               final customers = (snapshot.data ?? []).where((c) {
                 if (_searchQuery.isEmpty) return true;
                 return c.name.toLowerCase().contains(_searchQuery) ||
-                    (c.propertyNotes ?? '').toLowerCase().contains(_searchQuery) ||
+                    (c.propertyNotes ?? '').toLowerCase().contains(
+                      _searchQuery,
+                    ) ||
                     (c.budget ?? '').toLowerCase().contains(_searchQuery);
               }).toList();
 
               if (customers.isEmpty) {
-                return Center(
+                return const Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.support_agent_rounded, size: 48, color: AppColors.textMuted),
-                      const SizedBox(height: 12),
-                      const Text('No customer leads in this view.', style: TextStyle(color: AppColors.textSecondary)),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: () => DatabaseService.seedDemoData(),
-                        child: const Text('Seed Sample Customers'),
+                      Icon(
+                        Icons.support_agent_rounded,
+                        size: 48,
+                        color: AppColors.textMuted,
+                      ),
+                      SizedBox(height: 12),
+                      Text(
+                        'No customer leads in this view.',
+                        style: TextStyle(color: AppColors.textSecondary),
                       ),
                     ],
                   ),
@@ -213,7 +286,8 @@ class _CustomersTabState extends State<CustomersTab> {
                   return CustomerTile(
                     customer: customer,
                     showActions: true,
-                    onScheduleVisit: customer.status == CustomerStatus.unassigned
+                    onScheduleVisit:
+                        customer.status == CustomerStatus.unassigned
                         ? () => _showAssignDialog(customer)
                         : null,
                   );

@@ -66,5 +66,17 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Your location is required to verify office attendance and customer site visits.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Your camera is required to capture customer verification photos.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Your microphone is required for audio documentation during customer site visits.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+		<string>https</string>
+		<string>whatsapp</string>
+	</array>
 </dict>
 </plist>

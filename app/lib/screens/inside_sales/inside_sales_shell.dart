@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../config/app_theme.dart';
 import '../../services/auth_service.dart';
 import '../login_screen.dart';
@@ -25,19 +26,21 @@ class _InsideSalesShellState extends State<InsideSalesShell> {
       appBar: AppBar(
         title: Row(
           children: [
-            const Icon(Icons.headset_mic_rounded, color: AppColors.primary, size: 22),
-            const SizedBox(width: 8),
-            Text(
-              switch (_navIndex) {
-                0 => 'Inside Sales Dashboard',
-                1 => 'Customer Calls',
-                2 => 'Interested Leads',
-                3 => 'Not Interested Leads',
-                4 => 'Assigned Site Visits',
-                5 => 'User Profile',
-                _ => 'Inside Sales',
-              },
+            const Icon(
+              Icons.headset_mic_rounded,
+              color: AppColors.primary,
+              size: 22,
             ),
+            const SizedBox(width: 8),
+            Text(switch (_navIndex) {
+              0 => 'Inside Sales Dashboard',
+              1 => 'Customer Calls',
+              2 => 'Interested Leads',
+              3 => 'Not Interested Leads',
+              4 => 'Assigned Site Visits',
+              5 => 'User Profile',
+              _ => 'Inside Sales',
+            }),
           ],
         ),
         actions: [
@@ -72,12 +75,30 @@ class _InsideSalesShellState extends State<InsideSalesShell> {
         currentIndex: _navIndex,
         onTap: (index) => setState(() => _navIndex = index),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.call_rounded), label: 'Calls'),
-          BottomNavigationBarItem(icon: Icon(Icons.thumb_up_rounded), label: 'Interested'),
-          BottomNavigationBarItem(icon: Icon(Icons.thumb_down_rounded), label: 'Not Int.'),
-          BottomNavigationBarItem(icon: Icon(Icons.assignment_turned_in_rounded), label: 'Assigned'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_rounded),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.call_rounded),
+            label: 'Calls',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.thumb_up_rounded),
+            label: 'Interested',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.thumb_down_rounded),
+            label: 'Not Int.',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.assignment_turned_in_rounded),
+            label: 'Assigned',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_rounded),
+            label: 'Profile',
+          ),
         ],
       ),
     );

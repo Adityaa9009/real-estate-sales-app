@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import '../../config/app_theme.dart';
 import '../../models/customer.dart';
 import '../../models/employee.dart';
@@ -26,9 +27,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   void _handleSignOut() async {
     await AuthService.signOut();
     if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
   }
 
   @override
@@ -37,7 +38,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       appBar: AppBar(
         title: const Row(
           children: [
-            Icon(Icons.admin_panel_settings_rounded, color: AppColors.danger, size: 24),
+            Icon(
+              Icons.admin_panel_settings_rounded,
+              color: AppColors.danger,
+              size: 24,
+            ),
             SizedBox(width: 10),
             Text('Admin Dashboard'),
           ],
@@ -45,28 +50,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         actions: [
           // 1-Click Broadcast Button (PDF Page 1)
           IconButton.filledTonal(
-            icon: const Icon(Icons.campaign_rounded, color: AppColors.primary, size: 20),
+            icon: const Icon(
+              Icons.campaign_rounded,
+              color: AppColors.primary,
+              size: 20,
+            ),
             tooltip: '1-Click Broadcast Update/Holidays',
-            style: IconButton.styleFrom(backgroundColor: AppColors.primary.withAlpha(40)),
-            onPressed: () => showDialog(context: context, builder: (_) => const BroadcastDialog()),
-          ),
-          const SizedBox(width: 8),
-
-          // 1-Click Seed Data Button
-          IconButton.filledTonal(
-            icon: const Icon(Icons.cloud_sync_rounded, color: AppColors.info, size: 20),
-            tooltip: 'Seed Demo Data',
-            style: IconButton.styleFrom(backgroundColor: AppColors.info.withAlpha(40)),
-            onPressed: () async {
-              await DatabaseService.seedDemoData();
-              if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  backgroundColor: AppColors.success,
-                  content: Text('Realistic demo data seeded to Firestore!'),
-                ),
-              );
-            },
+            style: IconButton.styleFrom(
+              backgroundColor: AppColors.primary.withAlpha(40),
+            ),
+            onPressed: () => showDialog(
+              context: context,
+              builder: (_) => const BroadcastDialog(),
+            ),
           ),
           const SizedBox(width: 8),
 
@@ -102,10 +98,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         currentIndex: _currentTabIndex,
         onTap: (index) => setState(() => _currentTabIndex = index),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.badge_rounded), label: 'Employees'),
-          BottomNavigationBarItem(icon: Icon(Icons.people_alt_rounded), label: 'Customers'),
-          BottomNavigationBarItem(icon: Icon(Icons.photo_camera_front_rounded), label: 'Field Tracking'),
-          BottomNavigationBarItem(icon: Icon(Icons.fact_check_rounded), label: 'Attendance'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.badge_rounded),
+            label: 'Employees',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people_alt_rounded),
+            label: 'Customers',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.photo_camera_front_rounded),
+            label: 'Field Tracking',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.fact_check_rounded),
+            label: 'Attendance',
+          ),
         ],
       ),
     );
@@ -137,11 +145,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
               Row(
                 children: [
-                  const Icon(Icons.calendar_today_rounded, size: 14, color: AppColors.textSecondary),
+                  const Icon(
+                    Icons.calendar_today_rounded,
+                    size: 14,
+                    color: AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     dateStr,
-                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
@@ -158,7 +174,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 builder: (context, custSnapshot) {
                   final customers = custSnapshot.data ?? [];
                   final totalCustomers = customers.length;
-                  final interested = customers.where((c) => c.status == CustomerStatus.interested).length;
+                  final interested = customers
+                      .where((c) => c.status == CustomerStatus.interested)
+                      .length;
 
                   return Row(
                     children: [

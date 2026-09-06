@@ -55,13 +55,14 @@ enum CustomerStatus {
 class Customer {
   final String id;
   final String name;
-  final String phone;
+  final String maskedPhone;
   final String? email;
   final CustomerStatus status;
   final String? assignedInsideSalesId;
   final String? assignedInsideSalesName;
   final String? assignedOutsideSalesId;
   final String? assignedOutsideSalesName;
+  final String? activeVisitId;
   final DateTime? createdAt;
   final String? propertyNotes;
   final String? budget;
@@ -69,40 +70,50 @@ class Customer {
   const Customer({
     required this.id,
     required this.name,
-    required this.phone,
+    required this.maskedPhone,
     this.email,
     this.status = CustomerStatus.unassigned,
     this.assignedInsideSalesId,
     this.assignedInsideSalesName,
     this.assignedOutsideSalesId,
     this.assignedOutsideSalesName,
+    this.activeVisitId,
     this.createdAt,
     this.propertyNotes,
     this.budget,
   });
 
-  /// Masks all digits except the last 4 (e.g. '******4285')
-  String get maskedPhone {
-    if (phone.length <= 4) return phone;
-    final lastFour = phone.substring(phone.length - 4);
-    final maskedPrefix = '*' * (phone.length - 4);
-    return '$maskedPrefix$lastFour';
+  /// Deprecated convenience getter to avoid breaking views expecting .phone
+  String get phone => maskedPhone;
+
+  static String maskPhoneNumber(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return '';
+    final cleaned = raw.trim();
+    if (cleaned.length <= 4) return cleaned;
+    final lastFour = cleaned.substring(cleaned.length - 4);
+    final prefix = '*' * (cleaned.length - 4);
+    return '$prefix$lastFour';
   }
 
   factory Customer.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? {};
     final createdTimestamp = data['createdAt'] as Timestamp?;
 
+    final existingMasked = data['maskedPhone'] as String?;
+    final legacyPhone = data['phone'] as String?;
+    final masked = existingMasked ?? maskPhoneNumber(legacyPhone);
+
     return Customer(
       id: doc.id,
       name: data['name'] as String? ?? 'Unnamed Customer',
-      phone: data['phone'] as String? ?? '',
+      maskedPhone: masked,
       email: data['email'] as String?,
       status: CustomerStatus.fromString(data['status'] as String?),
       assignedInsideSalesId: data['assignedInsideSalesId'] as String?,
       assignedInsideSalesName: data['assignedInsideSalesName'] as String?,
       assignedOutsideSalesId: data['assignedOutsideSalesId'] as String?,
       assignedOutsideSalesName: data['assignedOutsideSalesName'] as String?,
+      activeVisitId: data['activeVisitId'] as String?,
       createdAt: createdTimestamp?.toDate(),
       propertyNotes: data['propertyNotes'] as String?,
       budget: data['budget'] as String?,
@@ -110,15 +121,23 @@ class Customer {
   }
 
   Map<String, dynamic> toFirestore() => {
+    'id': id,
     'name': name,
-    'phone': phone,
-    'email': email,
+    'maskedPhone': maskedPhone,
+    if (email != null) 'email': email,
     'status': status.firestoreValue,
-    'assignedInsideSalesId': assignedInsideSalesId,
-    'assignedInsideSalesName': assignedInsideSalesName,
-    'assignedOutsideSalesId': assignedOutsideSalesId,
-    'assignedOutsideSalesName': assignedOutsideSalesName,
-    'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
+    if (assignedInsideSalesId != null)
+      'assignedInsideSalesId': assignedInsideSalesId,
+    if (assignedInsideSalesName != null)
+      'assignedInsideSalesName': assignedInsideSalesName,
+    if (assignedOutsideSalesId != null)
+      'assignedOutsideSalesId': assignedOutsideSalesId,
+    if (assignedOutsideSalesName != null)
+      'assignedOutsideSalesName': assignedOutsideSalesName,
+    if (activeVisitId != null) 'activeVisitId': activeVisitId,
+    'createdAt': createdAt != null
+        ? Timestamp.fromDate(createdAt!)
+        : FieldValue.serverTimestamp(),
     if (propertyNotes != null) 'propertyNotes': propertyNotes,
     if (budget != null) 'budget': budget,
   };

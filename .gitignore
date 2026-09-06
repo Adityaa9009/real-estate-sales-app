@@ -7,6 +7,7 @@
 build/
 
 # Firebase and secrets
+.firebase/
 .env
 .env.*
 service-account*.json
@@ -19,3 +20,5 @@ firebase-adminsdk-*.json
 
 # Local reference material and generated previews
 tmp/
+node_modules/
+firestore-debug.log

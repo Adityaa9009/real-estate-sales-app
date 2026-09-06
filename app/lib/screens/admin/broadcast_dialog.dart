@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../config/app_theme.dart';
 import '../../services/database_service.dart';
 
@@ -10,7 +11,9 @@ class BroadcastDialog extends StatefulWidget {
 }
 
 class _BroadcastDialogState extends State<BroadcastDialog> {
-  final _titleController = TextEditingController(text: 'Holiday & Office Update');
+  final _titleController = TextEditingController(
+    text: 'Holiday & Office Update',
+  );
   final _messageController = TextEditingController(
     text: 'All employees please note: Tomorrow the office will observe a holiday. For emergency visits, outside sales may coordinate directly.',
   );
@@ -24,7 +27,10 @@ class _BroadcastDialogState extends State<BroadcastDialog> {
   }
 
   Future<void> _send() async {
-    if (_titleController.text.trim().isEmpty || _messageController.text.trim().isEmpty) return;
+    if (_titleController.text.trim().isEmpty ||
+        _messageController.text.trim().isEmpty) {
+      return;
+    }
 
     setState(() => _isSending = true);
     try {
@@ -40,7 +46,9 @@ class _BroadcastDialogState extends State<BroadcastDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           backgroundColor: AppColors.success,
-          content: Text('Broadcast announcement published to all employee dashboards!'),
+          content: Text(
+            'Broadcast announcement published to all employee dashboards!',
+          ),
         ),
       );
     } catch (e) {
@@ -61,7 +69,10 @@ class _BroadcastDialogState extends State<BroadcastDialog> {
         children: [
           Icon(Icons.campaign_rounded, color: AppColors.primary, size: 24),
           SizedBox(width: 10),
-          Text('1-Click Broadcast Message', style: TextStyle(fontSize: 18, color: AppColors.textPrimary)),
+          Text(
+            '1-Click Broadcast Message',
+            style: TextStyle(fontSize: 18, color: AppColors.textPrimary),
+          ),
         ],
       ),
       content: SingleChildScrollView(
@@ -74,21 +85,45 @@ class _BroadcastDialogState extends State<BroadcastDialog> {
               style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),
-            const Text('Announcement Title', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+            const Text(
+              'Announcement Title',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+            ),
             const SizedBox(height: 6),
             TextField(
               controller: _titleController,
-              style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-              decoration: const InputDecoration(hintText: 'e.g. Festival Holiday Notice'),
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 14,
+              ),
+              decoration: const InputDecoration(
+                hintText: 'e.g. Festival Holiday Notice',
+              ),
             ),
             const SizedBox(height: 14),
-            const Text('Message Body', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+            const Text(
+              'Message Body',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+            ),
             const SizedBox(height: 6),
             TextField(
               controller: _messageController,
               maxLines: 4,
-              style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-              decoration: const InputDecoration(hintText: 'Write update details here...'),
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 14,
+              ),
+              decoration: const InputDecoration(
+                hintText: 'Write update details here...',
+              ),
             ),
           ],
         ),
@@ -96,7 +131,10 @@ class _BroadcastDialogState extends State<BroadcastDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted)),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(color: AppColors.textMuted),
+          ),
         ),
         ElevatedButton.icon(
           onPressed: _isSending ? null : _send,

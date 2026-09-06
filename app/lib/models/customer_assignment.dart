@@ -29,7 +29,9 @@ class CustomerAssignment {
     this.createdAt,
   });
 
-  factory CustomerAssignment.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+  factory CustomerAssignment.fromFirestore(
+    DocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
     final data = doc.data() ?? {};
     final scheduledTimestamp = data['visitScheduledAt'] as Timestamp?;
     final createdTimestamp = data['createdAt'] as Timestamp?;
@@ -52,15 +54,12 @@ class CustomerAssignment {
 
   Map<String, dynamic> toFirestore() => {
     'customerId': customerId,
-    'customerName': customerName,
-    'customerPhone': customerPhone,
-    'insideSalesId': insideSalesId,
-    'insideSalesName': insideSalesName,
-    'outsideSalesId': outsideSalesId,
-    'outsideSalesName': outsideSalesName,
+    if (insideSalesId != null) 'insideSalesId': insideSalesId,
+    if (outsideSalesId != null) 'outsideSalesId': outsideSalesId,
     'assignedBy': assignedBy,
-    'visitScheduledAt': visitScheduledAt != null ? Timestamp.fromDate(visitScheduledAt!) : null,
     'status': status,
-    'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
+    'createdAt': createdAt != null
+        ? Timestamp.fromDate(createdAt!)
+        : FieldValue.serverTimestamp(),
   };
 }

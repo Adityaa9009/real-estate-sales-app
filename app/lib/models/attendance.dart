@@ -10,6 +10,8 @@ class Attendance {
   final double? loginLatitude;
   final double? loginLongitude;
   final bool loginAllowed;
+  final String? failureReason;
+  final double? distanceMeters;
 
   const Attendance({
     required this.id,
@@ -21,6 +23,8 @@ class Attendance {
     this.loginLatitude,
     this.loginLongitude,
     this.loginAllowed = true,
+    this.failureReason,
+    this.distanceMeters,
   });
 
   Duration get workingDuration {
@@ -40,17 +44,21 @@ class Attendance {
       loginLatitude: (data['loginLatitude'] as num?)?.toDouble(),
       loginLongitude: (data['loginLongitude'] as num?)?.toDouble(),
       loginAllowed: data['loginAllowed'] as bool? ?? true,
+      failureReason: data['failureReason'] as String?,
+      distanceMeters: (data['distanceMeters'] as num?)?.toDouble(),
     );
   }
 
   Map<String, dynamic> toFirestore() => {
     'employeeId': employeeId,
-    'employeeName': employeeName,
-    'employeeEmail': employeeEmail,
+    if (employeeName != null) 'employeeName': employeeName,
+    if (employeeEmail != null) 'employeeEmail': employeeEmail,
     'loginAt': Timestamp.fromDate(loginAt),
-    'logoutAt': logoutAt != null ? Timestamp.fromDate(logoutAt!) : null,
-    'loginLatitude': loginLatitude,
-    'loginLongitude': loginLongitude,
+    if (logoutAt != null) 'logoutAt': Timestamp.fromDate(logoutAt!),
+    if (loginLatitude != null) 'loginLatitude': loginLatitude,
+    if (loginLongitude != null) 'loginLongitude': loginLongitude,
     'loginAllowed': loginAllowed,
+    if (failureReason != null) 'failureReason': failureReason,
+    if (distanceMeters != null) 'distanceMeters': distanceMeters,
   };
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/customer.dart';
 import '../config/app_theme.dart';
 import '../services/call_service.dart';
@@ -51,7 +52,9 @@ class CustomerTile extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: customer.status.color.withAlpha(30),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: customer.status.color.withAlpha(100)),
+                  border: Border.all(
+                    color: customer.status.color.withAlpha(100),
+                  ),
                 ),
                 child: Text(
                   customer.status.label,
@@ -67,7 +70,11 @@ class CustomerTile extends StatelessWidget {
           const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(Icons.phone_outlined, size: 14, color: AppColors.textMuted),
+              const Icon(
+                Icons.phone_outlined,
+                size: 14,
+                color: AppColors.textMuted,
+              ),
               const SizedBox(width: 6),
               Text(
                 'Phone: ${customer.maskedPhone}',
@@ -85,7 +92,7 @@ class CustomerTile extends StatelessWidget {
                   customer.budget!,
                   style: const TextStyle(fontSize: 12, color: AppColors.info),
                 ),
-              ]
+              ],
             ],
           ),
           if (customer.propertyNotes != null) ...[
@@ -103,7 +110,7 @@ class CustomerTile extends StatelessWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                // Real Call Button
+                // Real Call Button (fetches private contact on-demand)
                 IconButton.filledTonal(
                   icon: const Icon(Icons.call_rounded, size: 18),
                   tooltip: 'Call Customer',
@@ -111,11 +118,21 @@ class CustomerTile extends StatelessWidget {
                     backgroundColor: AppColors.primary.withAlpha(40),
                     foregroundColor: AppColors.primary,
                   ),
-                  onPressed: () => CallService.makePhoneCall(customer.phone),
+                  onPressed: () async {
+                    final res = await CallService.callCustomerById(customer.id);
+                    if (!res.success && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(res.message),
+                          backgroundColor: AppColors.danger,
+                        ),
+                      );
+                    }
+                  },
                 ),
                 const SizedBox(width: 8),
 
-                // WhatsApp Button
+                // WhatsApp Button (fetches private contact on-demand)
                 IconButton.filledTonal(
                   icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
                   tooltip: 'WhatsApp Message',
@@ -123,10 +140,21 @@ class CustomerTile extends StatelessWidget {
                     backgroundColor: const Color(0xFF25D366).withAlpha(40),
                     foregroundColor: const Color(0xFF25D366),
                   ),
-                  onPressed: () => WhatsAppService.sendInterestedMessage(
-                    customerName: customer.name,
-                    customerPhone: customer.phone,
-                  ),
+                  onPressed: () async {
+                    final res =
+                        await WhatsAppService.sendInterestedMessageByCustomerId(
+                          customerId: customer.id,
+                          customerName: customer.name,
+                        );
+                    if (!res.success && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(res.message),
+                          backgroundColor: AppColors.danger,
+                        ),
+                      );
+                    }
+                  },
                 ),
                 const Spacer(),
 
@@ -162,7 +190,10 @@ class CustomerTile extends StatelessWidget {
                     label: const Text('Schedule Visit'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.secondary,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       visualDensity: VisualDensity.compact,
                     ),
                   ),

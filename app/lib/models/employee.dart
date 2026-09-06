@@ -39,6 +39,14 @@ extension AppRoleExtension on AppRole {
     'outside_sales' => AppRole.outsideSales,
     _ => null,
   };
+
+  static AppRole fromStringOrThrow(String? value) {
+    final role = fromString(value);
+    if (role == null) {
+      throw FormatException('Invalid or missing role: "$value"');
+    }
+    return role;
+  }
 }
 
 class Employee {
@@ -64,14 +72,13 @@ class Employee {
     this.dob,
   });
 
-  factory Employee.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data() ?? {};
+  factory Employee.fromMap(String id, Map<String, dynamic> data) {
     final roleStr = data['role'] as String?;
-    final role = AppRoleExtension.fromString(roleStr) ?? AppRole.insideSales;
+    final role = AppRoleExtension.fromStringOrThrow(roleStr);
     final createdTimestamp = data['createdAt'] as Timestamp?;
 
     return Employee(
-      id: doc.id,
+      id: id,
       name: data['name'] as String? ?? 'Unnamed Employee',
       email: data['email'] as String? ?? '',
       phone: data['phone'] as String? ?? '',
@@ -83,14 +90,21 @@ class Employee {
     );
   }
 
+  factory Employee.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+    return Employee.fromMap(doc.id, doc.data() ?? {});
+  }
+
   Map<String, dynamic> toFirestore() => {
+    'id': id,
     'name': name,
     'email': email,
     'phone': phone,
     'role': role.firestoreValue,
     'profileImageUrl': profileImageUrl,
     'active': active,
-    'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
+    'createdAt': createdAt != null
+        ? Timestamp.fromDate(createdAt!)
+        : FieldValue.serverTimestamp(),
     if (dob != null) 'dob': dob,
   };
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../config/app_theme.dart';
 import '../../services/auth_service.dart';
 import '../login_screen.dart';
@@ -22,7 +23,11 @@ class _OutsideSalesShellState extends State<OutsideSalesShell> {
       appBar: AppBar(
         title: const Row(
           children: [
-            Icon(Icons.directions_walk_rounded, color: AppColors.success, size: 22),
+            Icon(
+              Icons.directions_walk_rounded,
+              color: AppColors.success,
+              size: 22,
+            ),
             SizedBox(width: 8),
             Text('Outside Sales Dashboard'),
           ],
@@ -44,7 +49,9 @@ class _OutsideSalesShellState extends State<OutsideSalesShell> {
       body: IndexedStack(
         index: _navIndex,
         children: [
-          OutsideHomeView(onNavigateToVisits: () => setState(() => _navIndex = 1)),
+          OutsideHomeView(
+            onNavigateToVisits: () => setState(() => _navIndex = 1),
+          ),
           const VisitsView(),
           const OutsideProfileView(),
         ],
@@ -53,9 +60,18 @@ class _OutsideSalesShellState extends State<OutsideSalesShell> {
         currentIndex: _navIndex,
         onTap: (index) => setState(() => _navIndex = index),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.pin_drop_rounded), label: 'Assigned Visits'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_rounded),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.pin_drop_rounded),
+            label: 'Assigned Visits',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_rounded),
+            label: 'Profile',
+          ),
         ],
       ),
     );

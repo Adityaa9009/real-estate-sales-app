@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../config/app_theme.dart';
 import '../services/auth_service.dart';
-import '../services/location_service.dart';
 import '../models/employee.dart';
-import '../widgets/demo_account_banner.dart';
 import 'admin/admin_dashboard_screen.dart';
 import 'executive/executive_dashboard_screen.dart';
 import 'inside_sales/inside_sales_shell.dart';
@@ -47,9 +46,8 @@ class _LoginScreenState extends State<LoginScreen> {
         break;
     }
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => target),
-    );
+    Navigator.of(context)
+        .pushReplacement(MaterialPageRoute(builder: (_) => target));
   }
 
   Future<void> _handleLogin() async {
@@ -67,12 +65,20 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final employee = await AuthService.signIn(email: email, password: password);
+      final employee = await AuthService.signIn(
+        email: email,
+        password: password,
+      );
       if (!mounted) return;
       _navigateToRoleDashboard(employee);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _errorMessage = e.toString().replaceAll('Exception: ', '').replaceAll('StateError: ', ''));
+      setState(
+        () => _errorMessage = e
+            .toString()
+            .replaceAll('Exception: ', '')
+            .replaceAll('StateError: ', ''),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -91,14 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  DemoAccountBanner(
-                    onSelectAccount: (email, password) {
-                      _emailController.text = email;
-                      _passwordController.text = password;
-                      setState(() => _errorMessage = null);
-                    },
-                  ),
-                  const SizedBox(height: 16),
+                  // Brand Logo & Title (matching PDF: "REAL ESTATE / Your trusted path to property")
                   Center(
                     child: Container(
                       width: 72,
@@ -114,7 +113,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ],
                       ),
-                      child: const Icon(Icons.apartment_rounded, color: Colors.white, size: 38),
+                      child: const Icon(
+                        Icons.apartment_rounded,
+                        color: Colors.white,
+                        size: 38,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -139,22 +142,33 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
+
+                  // Error Box
                   if (_errorMessage != null) ...[
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: AppColors.danger.withAlpha(25),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppColors.danger.withAlpha(100)),
+                        border: Border.all(
+                          color: AppColors.danger.withAlpha(100),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline_rounded, color: AppColors.danger, size: 20),
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: AppColors.danger,
+                            size: 20,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               _errorMessage!,
-                              style: const TextStyle(color: AppColors.danger, fontSize: 13),
+                              style: const TextStyle(
+                                color: AppColors.danger,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
                         ],
@@ -162,9 +176,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 16),
                   ],
+
+                  // Email Field
                   const Text(
                     'Email Address',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   TextField(
@@ -173,13 +193,22 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: const TextStyle(color: AppColors.textPrimary),
                     decoration: const InputDecoration(
                       hintText: 'name@realestate.com',
-                      prefixIcon: Icon(Icons.mail_outline_rounded, color: AppColors.textMuted),
+                      prefixIcon: Icon(
+                        Icons.mail_outline_rounded,
+                        color: AppColors.textMuted,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
+
+                  // Password Field
                   const Text(
                     'Password',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   TextField(
@@ -188,79 +217,52 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: const TextStyle(color: AppColors.textPrimary),
                     decoration: InputDecoration(
                       hintText: '••••••••',
-                      prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.textMuted),
+                      prefixIcon: const Icon(
+                        Icons.lock_outline_rounded,
+                        color: AppColors.textMuted,
+                      ),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          _obscurePassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
                           color: AppColors.textMuted,
                         ),
-                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                        onPressed: () => setState(
+                          () => _obscurePassword = !_obscurePassword,
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 24),
+
+                  // Login Button
                   SizedBox(
                     height: 50,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _handleLogin,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       child: _isLoading
                           ? const SizedBox(
                               width: 22,
                               height: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
                             )
                           : const Text(
                               'Sign In',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceLight,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.surfaceBorder),
-                    ),
-                    child: Wrap(
-                      alignment: WrapAlignment.spaceBetween,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 8,
-                      runSpacing: 6,
-                      children: [
-                        const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.location_on_rounded, size: 16, color: AppColors.info),
-                            SizedBox(width: 8),
-                            Text(
-                              'Geofence (Inside Sales):',
-                              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                            ),
-                          ],
-                        ),
-                        DropdownButton<bool>(
-                          value: LocationService.isMockInsideOffice,
-                          dropdownColor: AppColors.surfaceLight,
-                          underline: const SizedBox(),
-                          isDense: true,
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primaryLight),
-                          items: const [
-                            DropdownMenuItem(value: true, child: Text('Inside Office (<200m)')),
-                            DropdownMenuItem(value: false, child: Text('Outside Office (>200m)')),
-                          ],
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() => LocationService.setMockInsideOffice(val));
-                            }
-                          },
-                        ),
-                      ],
                     ),
                   ),
                 ],

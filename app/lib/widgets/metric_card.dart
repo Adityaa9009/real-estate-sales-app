@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../config/app_theme.dart';
 
 class MetricCard extends StatelessWidget {
@@ -53,7 +54,11 @@ class MetricCard extends StatelessWidget {
                   child: Icon(icon, color: accentColor, size: 22),
                 ),
                 if (onTap != null)
-                  const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: AppColors.textMuted),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 12,
+                    color: AppColors.textMuted,
+                  ),
               ],
             ),
             const SizedBox(height: 14),

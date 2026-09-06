@@ -17,14 +17,19 @@ class BroadcastMessage {
     required this.createdAt,
   });
 
-  factory BroadcastMessage.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+  factory BroadcastMessage.fromFirestore(
+    DocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
     final data = doc.data() ?? {};
     return BroadcastMessage(
       id: doc.id,
       title: data['title'] as String? ?? 'Company Update',
       message: data['message'] as String? ?? '',
       createdBy: data['createdBy'] as String? ?? 'Admin',
-      targetRoles: List<String>.from(data['targetRoles'] as List? ?? ['inside_sales', 'outside_sales', 'executive']),
+      targetRoles: List<String>.from(
+        data['targetRoles'] as List? ??
+            ['inside_sales', 'outside_sales', 'executive'],
+      ),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }

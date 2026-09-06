@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import '../../config/app_theme.dart';
 import '../../models/visit.dart';
 import '../../services/auth_service.dart';
@@ -13,6 +15,7 @@ class OutsideHomeView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final emp = AuthService.currentEmployee;
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -21,23 +24,35 @@ class OutsideHomeView extends StatelessWidget {
         children: [
           Text(
             'Field Operations: ${emp?.name ?? "Outside Rep"}',
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
           ),
           const SizedBox(height: 4),
           const Text(
-            'Conduct customer site visits, capture client selfies, and record conversation audio.',
+            'Conduct customer site visits, capture client verification, and log completed client interactions.',
             style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 24),
 
           // KPI Stats
           StreamBuilder<List<Visit>>(
-            stream: DatabaseService.getVisitsStream(),
+            stream: DatabaseService.getVisitsStream(outsideSalesId: currentUid),
             builder: (context, snapshot) {
               final visits = snapshot.data ?? [];
               final totalVisits = visits.length;
-              final completedVisits = visits.where((v) => v.status == 'completed').length;
-              final pendingVisits = visits.where((v) => v.status == 'scheduled' || v.status == 'in_progress').length;
+              final completedVisits = visits
+                  .where((v) => v.status == VisitStatus.visitCompleted)
+                  .length;
+              final pendingVisits = visits
+                  .where(
+                    (v) =>
+                        v.status == VisitStatus.visitScheduled ||
+                        v.status == VisitStatus.visitInProgress,
+                  )
+                  .length;
 
               return Row(
                 children: [
@@ -89,19 +104,39 @@ class OutsideHomeView extends StatelessWidget {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.checklist_rtl_rounded, color: AppColors.info, size: 22),
+                    Icon(
+                      Icons.checklist_rtl_rounded,
+                      color: AppColors.info,
+                      size: 22,
+                    ),
                     SizedBox(width: 10),
                     Text(
                       'Mandatory Visit Workflow (Company Policy)',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 14),
-                _workflowStep(1, 'Call customer to confirm time before heading out.'),
-                _workflowStep(2, 'Tap "Reached Location" when meeting client to initiate audio recording.'),
-                _workflowStep(3, 'Take and upload a verification selfie with the customer on site.'),
-                _workflowStep(4, 'Tap "Completed Visit" to conclude visit, upload audio log, and finish.'),
+                _workflowStep(
+                  1,
+                  'Call customer to confirm time before heading out.',
+                ),
+                _workflowStep(
+                  2,
+                  'Tap "Reached Location" when meeting client to initiate audio recording.',
+                ),
+                _workflowStep(
+                  3,
+                  'Take and upload a verification selfie with the customer on site.',
+                ),
+                _workflowStep(
+                  4,
+                  'Tap "Completed Visit" to conclude visit, upload audio log, and finish.',
+                ),
               ],
             ),
           ),
@@ -119,10 +154,25 @@ class OutsideHomeView extends StatelessWidget {
           CircleAvatar(
             radius: 10,
             backgroundColor: AppColors.primary.withAlpha(40),
-            child: Text('$num', style: const TextStyle(fontSize: 10, color: AppColors.primaryLight, fontWeight: FontWeight.w700)),
+            child: Text(
+              '$num',
+              style: const TextStyle(
+                fontSize: 10,
+                color: AppColors.primaryLight,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
           const SizedBox(width: 10),
-          Expanded(child: Text(text, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary))),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
         ],
       ),
     );

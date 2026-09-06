@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import '../../config/app_theme.dart';
 import '../../config/office_location.dart';
 import '../../models/broadcast_message.dart';
@@ -55,20 +57,28 @@ class _InsideHomeViewState extends State<InsideHomeView> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: _isInside ? AppColors.success.withAlpha(25) : AppColors.danger.withAlpha(25),
+              color: _isInside
+                  ? AppColors.success.withAlpha(25)
+                  : AppColors.danger.withAlpha(25),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: _isInside ? AppColors.success.withAlpha(120) : AppColors.danger.withAlpha(120),
+                color: _isInside
+                    ? AppColors.success.withAlpha(120)
+                    : AppColors.danger.withAlpha(120),
                 width: 1.5,
               ),
             ),
             child: Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: _isInside ? AppColors.success : AppColors.danger,
+                  backgroundColor: _isInside
+                      ? AppColors.success
+                      : AppColors.danger,
                   radius: 20,
                   child: Icon(
-                    _isInside ? Icons.verified_user_rounded : Icons.location_off_rounded,
+                    _isInside
+                        ? Icons.verified_user_rounded
+                        : Icons.location_off_rounded,
                     color: Colors.white,
                     size: 22,
                   ),
@@ -79,9 +89,13 @@ class _InsideHomeViewState extends State<InsideHomeView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _isInside ? 'Office Geofence Active (Within 200m)' : 'Outside Office Geofence',
+                        _isInside
+                            ? 'Office Geofence Active (Within 200m)'
+                            : 'Outside Office Geofence',
                         style: TextStyle(
-                          color: _isInside ? AppColors.success : AppColors.danger,
+                          color: _isInside
+                              ? AppColors.success
+                              : AppColors.danger,
                           fontWeight: FontWeight.w700,
                           fontSize: 15,
                         ),
@@ -91,13 +105,19 @@ class _InsideHomeViewState extends State<InsideHomeView> {
                         _isInside
                             ? 'Logged in at ${OfficeLocation.address} (${_distance.toStringAsFixed(0)}m)'
                             : 'You are ${_distance.toStringAsFixed(0)}m from office. Inside Sales operations require office premises.',
-                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.refresh_rounded, color: AppColors.textSecondary),
+                  icon: const Icon(
+                    Icons.refresh_rounded,
+                    color: AppColors.textSecondary,
+                  ),
                   tooltip: 'Recheck Location',
                   onPressed: _checkLocation,
                 ),
@@ -109,7 +129,11 @@ class _InsideHomeViewState extends State<InsideHomeView> {
           // Greeting
           Text(
             'Welcome, ${emp?.name ?? "Sales Associate"}',
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
           ),
           const SizedBox(height: 4),
           const Text(
@@ -120,12 +144,18 @@ class _InsideHomeViewState extends State<InsideHomeView> {
 
           // KPI Stats Cards
           StreamBuilder<List<Customer>>(
-            stream: DatabaseService.getCustomersStream(),
+            stream: DatabaseService.getCustomersStream(
+              assignedInsideSalesId: FirebaseAuth.instance.currentUser?.uid,
+            ),
             builder: (context, snapshot) {
               final customers = snapshot.data ?? [];
               final totalAssigned = customers.length;
-              final interestedCount = customers.where((c) => c.status == CustomerStatus.interested).length;
-              final scheduledCount = customers.where((c) => c.status == CustomerStatus.visitScheduled).length;
+              final interestedCount = customers
+                  .where((c) => c.status == CustomerStatus.interested)
+                  .length;
+              final scheduledCount = customers
+                  .where((c) => c.status == CustomerStatus.visitScheduled)
+                  .length;
 
               return Row(
                 children: [
@@ -167,7 +197,11 @@ class _InsideHomeViewState extends State<InsideHomeView> {
           // Company Broadcast Updates Banner (PDF Page 1: Admin one-click broadcast message)
           const Text(
             'Company Announcements',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
           ),
           const SizedBox(height: 12),
           StreamBuilder<List<BroadcastMessage>>(
@@ -184,9 +218,18 @@ class _InsideHomeViewState extends State<InsideHomeView> {
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.notifications_none_rounded, color: AppColors.textMuted),
+                      Icon(
+                        Icons.notifications_none_rounded,
+                        color: AppColors.textMuted,
+                      ),
                       SizedBox(width: 12),
-                      Text('No new announcements today.', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      Text(
+                        'No new announcements today.',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
                     ],
                   ),
                 );
@@ -205,18 +248,30 @@ class _InsideHomeViewState extends State<InsideHomeView> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.campaign_rounded, color: AppColors.primaryLight, size: 20),
+                        const Icon(
+                          Icons.campaign_rounded,
+                          color: AppColors.primaryLight,
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           latest.title,
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.textPrimary),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Text(
                       latest.message,
-                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                        height: 1.4,
+                      ),
                     ),
                   ],
                 ),

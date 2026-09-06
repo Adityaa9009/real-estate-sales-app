@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import '../../config/app_theme.dart';
 import '../../models/customer.dart';
 import '../../services/database_service.dart';
@@ -10,13 +12,20 @@ class NotInterestedView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
     return StreamBuilder<List<Customer>>(
-      stream: DatabaseService.getCustomersStream(statusFilter: CustomerStatus.notInterested),
+      stream: DatabaseService.getCustomersStream(
+        statusFilter: CustomerStatus.notInterested,
+        assignedInsideSalesId: currentUid,
+      ),
       builder: (context, snapshot) {
         final list = snapshot.data ?? [];
         if (list.isEmpty) {
           return const Center(
-            child: Text('No customers marked as Not Interested.', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(
+              'No customers marked as Not Interested.',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           );
         }
 
@@ -33,9 +42,9 @@ class NotInterestedView extends StatelessWidget {
                   customerId: cust.id,
                   status: CustomerStatus.interested,
                 );
-                await WhatsAppService.sendInterestedMessage(
+                await WhatsAppService.sendInterestedMessageByCustomerId(
+                  customerId: cust.id,
                   customerName: cust.name,
-                  customerPhone: cust.phone,
                 );
               },
             );
