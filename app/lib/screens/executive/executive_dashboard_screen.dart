@@ -141,22 +141,22 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
                 indicatorColor: AppColors.secondary.withAlpha(40),
                 destinations: const [
                   NavigationDestination(
-                    icon: Icon(Icons.person_add_outlined),
+                    icon: Icon(Icons.person_add_rounded),
                     selectedIcon: Icon(Icons.person_add_rounded, color: AppColors.secondary),
                     label: 'Add Staff',
                   ),
                   NavigationDestination(
-                    icon: Icon(Icons.group_add_outlined),
+                    icon: Icon(Icons.group_add_rounded),
                     selectedIcon: Icon(Icons.group_add_rounded, color: AppColors.secondary),
                     label: 'Add Lead',
                   ),
                   NavigationDestination(
-                    icon: Icon(Icons.badge_outlined),
+                    icon: Icon(Icons.badge_rounded),
                     selectedIcon: Icon(Icons.badge_rounded, color: AppColors.secondary),
                     label: 'Directory',
                   ),
                   NavigationDestination(
-                    icon: Icon(Icons.assignment_ind_outlined),
+                    icon: Icon(Icons.assignment_ind_rounded),
                     selectedIcon: Icon(Icons.assignment_ind_rounded, color: AppColors.secondary),
                     label: 'Assign',
                   ),
@@ -178,29 +178,29 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
                   children: [
                     Padding(
-                      padding: const EdgeInsets.only(left: 12, bottom: 12),
+                      padding: const EdgeInsets.only(left: 12, top: 12, bottom: 8),
                       child: Text(
                         'MANAGEMENT',
                         style: GoogleFonts.inter(
-                          fontSize: 11,
-                          letterSpacing: 1.2,
+                          fontSize: 10,
+                          letterSpacing: 2.0,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textMuted,
+                          color: AppColors.textMuted.withAlpha(160),
                         ),
                       ),
                     ),
                     _sidebarItem(0, Icons.person_add_rounded, 'Add Employee'),
                     _sidebarItem(1, Icons.group_add_rounded, 'Add Customer'),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
                     Padding(
-                      padding: const EdgeInsets.only(left: 12, bottom: 12),
+                      padding: const EdgeInsets.only(left: 12, top: 24, bottom: 8),
                       child: Text(
                         'PIPELINE & STAFF',
                         style: GoogleFonts.inter(
-                          fontSize: 11,
-                          letterSpacing: 1.2,
+                          fontSize: 10,
+                          letterSpacing: 2.0,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textMuted,
+                          color: AppColors.textMuted.withAlpha(160),
                         ),
                       ),
                     ),
@@ -212,7 +212,7 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
                     ),
                     ListTile(
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      leading: const Icon(Icons.settings_outlined, color: AppColors.textMuted, size: 20),
+                      leading: const Icon(Icons.settings_rounded, color: AppColors.textMuted, size: 20),
                       title: Text(
                         'Settings',
                         style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: 13),
@@ -261,29 +261,62 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
-        color: isSelected ? AppColors.secondary.withAlpha(35) : Colors.transparent,
+        color: isSelected ? AppColors.secondary.withAlpha(25) : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isSelected ? AppColors.secondary.withAlpha(90) : Colors.transparent,
+          color: isSelected ? AppColors.secondary.withAlpha(70) : Colors.transparent,
         ),
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: AppColors.secondary.withAlpha(30),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
       ),
-      child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        dense: true,
-        leading: Icon(
-          icon,
-          color: isSelected ? AppColors.secondary : AppColors.textSecondary,
-          size: 20,
-        ),
-        title: Text(
-          title,
-          style: GoogleFonts.inter(
-            color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-            fontSize: 13,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => setState(() => _selectedSidebarIndex = index),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                if (isSelected)
+                  Container(
+                    width: 3.5,
+                    height: 18,
+                    margin: const EdgeInsets.only(right: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.secondary,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  )
+                else
+                  const SizedBox(width: 13.5),
+                Icon(
+                  icon,
+                  color: isSelected ? AppColors.secondary : AppColors.textSecondary,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: GoogleFonts.inter(
+                      color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        onTap: () => setState(() => _selectedSidebarIndex = index),
       ),
     );
   }
@@ -306,18 +339,7 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
           constraints: const BoxConstraints(maxWidth: 580),
           child: Container(
             padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceCard,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.surfaceBorder),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(50),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
+            decoration: CardStyles.primary(borderRadius: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -356,140 +378,213 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 const Divider(color: AppColors.surfaceBorder, height: 1),
                 const SizedBox(height: 20),
+
+                // Section 1: Personal Details
                 Text(
-                  'Full Name',
+                  'PERSONAL DETAILS',
                   style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
+                    color: AppColors.textMuted,
                   ),
                 ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: _empNameCtrl,
-                  style: GoogleFonts.inter(color: AppColors.textPrimary, fontSize: 14),
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.person_outline, size: 20, color: AppColors.textMuted),
-                    hintText: 'e.g. Sudheer Kumar',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Work Email',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: _empEmailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  style: GoogleFonts.inter(color: AppColors.textPrimary, fontSize: 14),
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.email_outlined, size: 20, color: AppColors.textMuted),
-                    hintText: 'e.g. sudheer@company.com',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Password (minimum 6 characters)',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: _empPassCtrl,
-                  obscureText: _obscurePass,
-                  style: GoogleFonts.inter(color: AppColors.textPrimary, fontSize: 14),
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.lock_outline, size: 20, color: AppColors.textMuted),
-                    hintText: '••••••••',
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePass ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                        color: AppColors.textSecondary,
-                        size: 20,
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: CardStyles.flat(borderRadius: 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Full Name',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
-                      onPressed: () => setState(() => _obscurePass = !_obscurePass),
-                    ),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: _empNameCtrl,
+                        style: GoogleFonts.inter(color: AppColors.textPrimary, fontSize: 14),
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.person_outline_rounded, size: 20, color: AppColors.textMuted),
+                          hintText: 'e.g. Sudheer Kumar',
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        'Work Email',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: _empEmailCtrl,
+                        keyboardType: TextInputType.emailAddress,
+                        style: GoogleFonts.inter(color: AppColors.textPrimary, fontSize: 14),
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.mail_outline_rounded, size: 20, color: AppColors.textMuted),
+                          hintText: 'e.g. sudheer@company.com',
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        'Date of Birth (DOB)',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: _empDobCtrl,
+                        style: GoogleFonts.inter(color: AppColors.textPrimary, fontSize: 14),
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.calendar_today_rounded, size: 20, color: AppColors.textMuted),
+                          hintText: 'YYYY-MM-DD',
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 16),
+
+                // Section 2: Security & Contact
+                const SizedBox(height: 18),
                 Text(
-                  'Phone Number',
+                  'SECURITY & CONTACT',
                   style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
+                    color: AppColors.textMuted,
                   ),
                 ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: _empPhoneCtrl,
-                  keyboardType: TextInputType.phone,
-                  style: GoogleFonts.inter(color: AppColors.textPrimary, fontSize: 14),
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.phone_outlined, size: 20, color: AppColors.textMuted),
-                    hintText: 'e.g. 9899001122',
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: CardStyles.flat(borderRadius: 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Password (minimum 6 characters)',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: _empPassCtrl,
+                        obscureText: _obscurePass,
+                        style: GoogleFonts.inter(color: AppColors.textPrimary, fontSize: 14),
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20, color: AppColors.primaryLight),
+                          hintText: '••••••••',
+                          fillColor: AppColors.primary.withAlpha(10),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: AppColors.primary.withAlpha(80)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePass ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                              color: AppColors.textSecondary,
+                              size: 20,
+                            ),
+                            onPressed: () => setState(() => _obscurePass = !_obscurePass),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        'Phone Number',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: _empPhoneCtrl,
+                        keyboardType: TextInputType.phone,
+                        style: GoogleFonts.inter(color: AppColors.textPrimary, fontSize: 14),
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.phone_rounded, size: 20, color: AppColors.textMuted),
+                          hintText: 'e.g. 9899001122',
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 16),
+
+                // Section 3: Organizational Role
+                const SizedBox(height: 18),
                 Text(
-                  'Role Assignment',
+                  'ORGANIZATIONAL ROLE',
                   style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
+                    color: AppColors.textMuted,
                   ),
                 ),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<AppRole>(
-                  initialValue: _empRole,
-                  dropdownColor: AppColors.surfaceCard,
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.badge_outlined, size: 20, color: AppColors.textMuted),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: CardStyles.flat(borderRadius: 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Role Assignment',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      DropdownButtonFormField<AppRole>(
+                        initialValue: _empRole,
+                        dropdownColor: AppColors.surfaceCard,
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.badge_rounded, size: 20, color: AppColors.textMuted),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: AppRole.insideSales,
+                            child: Text('Inside Sales (Calling & Qualification)'),
+                          ),
+                          DropdownMenuItem(
+                            value: AppRole.outsideSales,
+                            child: Text('Outside Sales (On-Site Visits & Fieldwork)'),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) setState(() => _empRole = val);
+                        },
+                      ),
+                    ],
                   ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: AppRole.insideSales,
-                      child: Text('Inside Sales (Calling & Qualification)'),
-                    ),
-                    DropdownMenuItem(
-                      value: AppRole.outsideSales,
-                      child: Text('Outside Sales (On-Site Visits & Fieldwork)'),
-                    ),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) setState(() => _empRole = val);
-                  },
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'Date of Birth (DOB)',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: _empDobCtrl,
-                  style: GoogleFonts.inter(color: AppColors.textPrimary, fontSize: 14),
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.calendar_today_outlined, size: 20, color: AppColors.textMuted),
-                    hintText: 'YYYY-MM-DD',
-                  ),
-                ),
-                const SizedBox(height: 28),
+
+                const SizedBox(height: 24),
                 SizedBox(
                   height: 48,
                   width: double.infinity,
@@ -612,18 +707,7 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(28),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceCard,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.surfaceBorder),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(50),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
+                decoration: CardStyles.primary(borderRadius: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -678,7 +762,7 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
                       controller: _custNameCtrl,
                       style: GoogleFonts.inter(color: AppColors.textPrimary, fontSize: 14),
                       decoration: const InputDecoration(
-                        prefixIcon: Icon(Icons.person_outline, size: 20, color: AppColors.textMuted),
+                        prefixIcon: Icon(Icons.person_outline_rounded, size: 20, color: AppColors.textMuted),
                         hintText: 'e.g. Ramesh Chandra',
                       ),
                     ),
@@ -697,7 +781,7 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
                       keyboardType: TextInputType.phone,
                       style: GoogleFonts.inter(color: AppColors.textPrimary, fontSize: 14),
                       decoration: const InputDecoration(
-                        prefixIcon: Icon(Icons.phone_outlined, size: 20, color: AppColors.textMuted),
+                        prefixIcon: Icon(Icons.phone_rounded, size: 20, color: AppColors.textMuted),
                         hintText: 'e.g. 9811223344',
                       ),
                     ),
@@ -716,7 +800,7 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
                       keyboardType: TextInputType.emailAddress,
                       style: GoogleFonts.inter(color: AppColors.textPrimary, fontSize: 14),
                       decoration: const InputDecoration(
-                        prefixIcon: Icon(Icons.email_outlined, size: 20, color: AppColors.textMuted),
+                        prefixIcon: Icon(Icons.mail_outline_rounded, size: 20, color: AppColors.textMuted),
                         hintText: 'e.g. ramesh@example.com',
                       ),
                     ),
@@ -948,7 +1032,7 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
                 return const EmptyStateWidget(
                   title: 'No Staff Found',
                   message: 'No team members match the selected directory filter.',
-                  icon: Icons.badge_outlined,
+                  icon: Icons.badge_rounded,
                 );
               }
 
@@ -963,18 +1047,7 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceCard,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.surfaceBorder),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(30),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
+                    decoration: CardStyles.secondary(borderRadius: 16),
                     child: Material(
                       color: Colors.transparent,
                       borderRadius: BorderRadius.circular(16),
@@ -1096,7 +1169,7 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
           return const EmptyStateWidget(
             title: 'No Customer Leads',
             message: 'Add customer leads to start managing team assignments.',
-            icon: Icons.assignment_ind_outlined,
+            icon: Icons.assignment_ind_rounded,
           );
         }
 
@@ -1160,7 +1233,7 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
                 child: EmptyStateWidget(
                   title: 'No Matching Leads',
                   message: 'No customer leads match the current search or filter.',
-                  icon: Icons.filter_alt_off_outlined,
+                  icon: Icons.filter_alt_off_rounded,
                 ),
               )
             else
@@ -1177,19 +1250,10 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceCard,
-                          borderRadius: BorderRadius.circular(16),
+                        decoration: CardStyles.secondary(borderRadius: 16).copyWith(
                           border: Border.all(
                             color: isAssigned ? AppColors.surfaceBorder : AppColors.secondary.withAlpha(80),
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withAlpha(30),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
                         ),
                         child: Material(
                           color: Colors.transparent,
@@ -1232,7 +1296,7 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
                                       const SizedBox(height: 4),
                                       Row(
                                         children: [
-                                          const Icon(Icons.phone_outlined, size: 13, color: AppColors.textMuted),
+                                          const Icon(Icons.phone_rounded, size: 13, color: AppColors.textMuted),
                                           const SizedBox(width: 4),
                                           Text(
                                             cust.maskedPhone,
@@ -1245,7 +1309,7 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
                                             const SizedBox(width: 10),
                                             const Text('•', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                                             const SizedBox(width: 10),
-                                            const Icon(Icons.person_pin_circle_outlined, size: 13, color: AppColors.info),
+                                            const Icon(Icons.person_pin_circle_rounded, size: 13, color: AppColors.info),
                                             const SizedBox(width: 4),
                                             Flexible(
                                               child: Text(
