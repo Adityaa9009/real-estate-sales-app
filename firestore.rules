@@ -1,5 +1,4 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -16,7 +15,9 @@ service cloud.firestore {
     }
 
     function isActiveEmployee() {
-      return isSignedIn() && myEmployeeDoc().data.active == true;
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/employees/$(request.auth.uid)) &&
+        myEmployeeDoc().data.active == true;
     }
 
     function isAdmin() {
@@ -31,61 +32,211 @@ service cloud.firestore {
       return isAdmin() || isExecutive();
     }
 
+    // ==========================================
+    // 1. Employee Records
+    // ==========================================
     match /employees/{employeeId} {
-      allow read: if isActiveEmployee() || (isSignedIn() && request.auth.uid == employeeId);
-      allow create, update: if isAdminOrExecutive();
-      allow delete: if isAdmin();
+      allow read: if isActiveEmployee();
+      allow create: if (isAdmin() && request.resource.data.role in ['admin', 'executive', 'inside_sales', 'outside_sales']) ||
+                      (isExecutive() && request.resource.data.role in ['inside_sales', 'outside_sales'] && request.auth.uid != employeeId);
+      // Absolute Lockout: Executives have ZERO update permissions on /employees
+      allow update: if isAdmin();
+      allow delete: if false;
     }
 
+    // ==========================================
+    // 2. Customers
+    // ==========================================
     match /customers/{customerId} {
       allow read: if isActiveEmployee() && (
         isAdminOrExecutive() ||
         resource.data.assignedInsideSalesId == request.auth.uid ||
         resource.data.assignedOutsideSalesId == request.auth.uid
       );
-      allow create: if isAdminOrExecutive();
-      allow update: if isActiveEmployee() && (
+
+      // Create validation
+      allow create: if isAdminOrExecutive() &&
+        request.resource.data.id == customerId &&
+        request.resource.data.keys().hasAll(['id', 'name', 'maskedPhone', 'status', 'createdAt']) &&
+        request.resource.data.keys().hasOnly(['id', 'name', 'maskedPhone', 'email', 'status', 'budget', 'propertyNotes', 'assignedInsideSalesId', 'assignedInsideSalesName', 'assignedOutsideSalesId', 'assignedOutsideSalesName', 'activeVisitId', 'createdAt']) &&
+        !request.resource.data.keys().hasAny(['phone', 'rawPhone', 'contactPhone', 'customerPhone']);
+
+      // Update validation
+      allow update: if (
+        request.resource.data.id == customerId &&
+        request.resource.data.keys().hasOnly(['id', 'name', 'maskedPhone', 'email', 'status', 'budget', 'propertyNotes', 'assignedInsideSalesId', 'assignedInsideSalesName', 'assignedOutsideSalesId', 'assignedOutsideSalesName', 'activeVisitId', 'createdAt']) &&
+        !request.resource.data.keys().hasAny(['phone', 'rawPhone', 'contactPhone', 'customerPhone'])
+      ) && (
         isAdminOrExecutive() ||
-        resource.data.assignedInsideSalesId == request.auth.uid ||
-        resource.data.assignedOutsideSalesId == request.auth.uid
+        // Inside Sales transitions
+        (isActiveEmployee() && resource.data.assignedInsideSalesId == request.auth.uid &&
+          (
+            // Outcome transition: assigned -> interested / not_interested
+            (resource.data.status == 'assigned_to_inside_sales' &&
+             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
+             request.resource.data.status in ['interested', 'not_interested'])
+            ||
+            // Scheduling transition: interested -> visit_scheduled (bidirectional atomic check)
+            (resource.data.status == 'interested' &&
+             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'assignedOutsideSalesId', 'assignedOutsideSalesName', 'activeVisitId']) &&
+             request.resource.data.status == 'visit_scheduled' &&
+             get(/databases/$(database)/documents/employees/$(request.resource.data.assignedOutsideSalesId)).data.role == 'outside_sales' &&
+             get(/databases/$(database)/documents/employees/$(request.resource.data.assignedOutsideSalesId)).data.active == true &&
+             getAfter(/databases/$(database)/documents/visits/$(request.resource.data.activeVisitId)).data.customerId == customerId &&
+             getAfter(/databases/$(database)/documents/visits/$(request.resource.data.activeVisitId)).data.insideSalesId == request.auth.uid &&
+             getAfter(/databases/$(database)/documents/visits/$(request.resource.data.activeVisitId)).data.outsideSalesId == request.resource.data.assignedOutsideSalesId &&
+             getAfter(/databases/$(database)/documents/visits/$(request.resource.data.activeVisitId)).data.status == 'visit_scheduled')
+          )
+        ) ||
+        // Outside Sales bidirectional atomic synchronization
+        (isActiveEmployee() && resource.data.assignedOutsideSalesId == request.auth.uid &&
+         resource.data.activeVisitId != null &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
+          (
+            (resource.data.status == 'visit_scheduled' &&
+             request.resource.data.status == 'visit_in_progress' &&
+             getAfter(/databases/$(database)/documents/visits/$(resource.data.activeVisitId)).data.status == 'visit_in_progress' &&
+             getAfter(/databases/$(database)/documents/visits/$(resource.data.activeVisitId)).data.customerId == customerId)
+            ||
+            (resource.data.status == 'visit_in_progress' &&
+             request.resource.data.status == 'visit_completed' &&
+             getAfter(/databases/$(database)/documents/visits/$(resource.data.activeVisitId)).data.status == 'visit_completed' &&
+             getAfter(/databases/$(database)/documents/visits/$(resource.data.activeVisitId)).data.customerId == customerId)
+          )
+        )
       );
-      allow delete: if isAdmin();
+      allow delete: if false;
+
+      // Private Contact Information Subcollection
+      match /private/{docId} {
+        allow read: if isActiveEmployee() && (
+          isAdmin() ||
+          (myRole() == 'inside_sales' && get(/databases/$(database)/documents/customers/$(customerId)).data.assignedInsideSalesId == request.auth.uid) ||
+          (myRole() == 'outside_sales' && get(/databases/$(database)/documents/customers/$(customerId)).data.assignedOutsideSalesId == request.auth.uid)
+        );
+        allow create: if isAdminOrExecutive() && docId == 'contact' &&
+          request.resource.data.keys().hasAll(['phone', 'customerId', 'updatedAt']) &&
+          request.resource.data.keys().hasOnly(['phone', 'customerId', 'updatedAt']) &&
+          request.resource.data.customerId == customerId;
+        allow update: if isAdmin() && docId == 'contact' &&
+          request.resource.data.keys().hasAll(['phone', 'customerId', 'updatedAt']) &&
+          request.resource.data.keys().hasOnly(['phone', 'customerId', 'updatedAt']) &&
+          request.resource.data.customerId == customerId;
+        allow delete: if false;
+      }
     }
 
-    match /attendance/{attendanceId} {
-      allow read: if isAdmin() || (isActiveEmployee() && resource.data.employeeId == request.auth.uid);
-      allow create: if isActiveEmployee() && request.resource.data.employeeId == request.auth.uid;
-      allow update: if isAdmin() || (isActiveEmployee() && resource.data.employeeId == request.auth.uid);
-      allow delete: if isAdmin();
+    // ==========================================
+    // 4. Visits
+    // ==========================================
+    match /visits/{visitId} {
+      allow read: if isAdminOrExecutive() ||
+        (isActiveEmployee() && (resource.data.outsideSalesId == request.auth.uid || resource.data.insideSalesId == request.auth.uid));
+
+      // Create validation (bidirectional atomic check)
+      allow create: if (
+        request.resource.data.id == visitId &&
+        request.resource.data.keys().hasAll(['id', 'customerId', 'customerName', 'maskedPhone', 'insideSalesId', 'outsideSalesId', 'scheduledAt', 'status']) &&
+        request.resource.data.keys().hasOnly(['id', 'customerId', 'customerName', 'maskedPhone', 'insideSalesId', 'insideSalesName', 'outsideSalesId', 'outsideSalesName', 'scheduledAt', 'reachedAt', 'completedAt', 'status', 'notes', 'createdAt']) &&
+        !request.resource.data.keys().hasAny(['phone', 'rawPhone', 'customerPhone', 'contactPhone', 'recordingPath', 'selfiePath', 'recordingUrl', 'selfieUrl', 'audioUrl', 'imageUrl'])
+      ) && (
+        isAdmin() || (
+          isActiveEmployee() &&
+          myRole() == 'inside_sales' &&
+          request.resource.data.insideSalesId == request.auth.uid &&
+          request.resource.data.status == 'visit_scheduled' &&
+          getAfter(/databases/$(database)/documents/customers/$(request.resource.data.customerId)).data.activeVisitId == visitId &&
+          getAfter(/databases/$(database)/documents/customers/$(request.resource.data.customerId)).data.status == 'visit_scheduled' &&
+          getAfter(/databases/$(database)/documents/customers/$(request.resource.data.customerId)).data.assignedInsideSalesId == request.auth.uid &&
+          getAfter(/databases/$(database)/documents/customers/$(request.resource.data.customerId)).data.assignedOutsideSalesId == request.resource.data.outsideSalesId
+        )
+      );
+
+      // Update validation (bidirectional atomic check)
+      allow update: if (
+        request.resource.data.id == visitId &&
+        request.resource.data.keys().hasOnly(['id', 'customerId', 'customerName', 'maskedPhone', 'insideSalesId', 'insideSalesName', 'outsideSalesId', 'outsideSalesName', 'scheduledAt', 'reachedAt', 'completedAt', 'status', 'notes', 'createdAt']) &&
+        !request.resource.data.keys().hasAny(['phone', 'rawPhone', 'customerPhone', 'contactPhone', 'recordingPath', 'selfiePath', 'recordingUrl', 'selfieUrl', 'audioUrl', 'imageUrl'])
+      ) && (
+        isAdmin() || (
+          isActiveEmployee() &&
+          resource.data.outsideSalesId == request.auth.uid &&
+          (
+            // Scheduled -> In Progress (atomic with customer status)
+            (resource.data.status == 'visit_scheduled' &&
+             request.resource.data.status == 'visit_in_progress' &&
+             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'reachedAt']) &&
+             getAfter(/databases/$(database)/documents/customers/$(resource.data.customerId)).data.status == 'visit_in_progress' &&
+             getAfter(/databases/$(database)/documents/customers/$(resource.data.customerId)).data.activeVisitId == visitId)
+            ||
+            // In Progress -> Completed (atomic with customer status)
+            (resource.data.status == 'visit_in_progress' &&
+             request.resource.data.status == 'visit_completed' &&
+             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'completedAt', 'notes']) &&
+             getAfter(/databases/$(database)/documents/customers/$(resource.data.customerId)).data.status == 'visit_completed' &&
+             getAfter(/databases/$(database)/documents/customers/$(resource.data.customerId)).data.activeVisitId == visitId)
+          )
+        )
+      );
+      allow delete: if false;
+
+      // Isolated Media Subcollection (Admin + assigned Outside Sales only)
+      match /private/{docId} {
+        allow read, write: if isAdmin() || (
+          isActiveEmployee() &&
+          get(/databases/$(database)/documents/visits/$(visitId)).data.outsideSalesId == request.auth.uid
+        );
+      }
     }
 
+    // ==========================================
+    // 5. Customer Assignments & Call Updates
+    // ==========================================
     match /customer_assignments/{assignmentId} {
       allow read: if isActiveEmployee() && (
         isAdminOrExecutive() ||
         resource.data.insideSalesId == request.auth.uid ||
         resource.data.outsideSalesId == request.auth.uid
       );
-      allow create: if isAdminOrExecutive();
-      allow update: if isActiveEmployee() && (
+      allow create: if (
+        request.resource.data.keys().hasAll(['customerId', 'assignedBy', 'status', 'createdAt']) &&
+        request.resource.data.keys().hasOnly(['customerId', 'insideSalesId', 'outsideSalesId', 'assignedBy', 'status', 'createdAt'])
+      ) && (
         isAdminOrExecutive() ||
-        resource.data.insideSalesId == request.auth.uid ||
-        resource.data.outsideSalesId == request.auth.uid
+        (isActiveEmployee() && myRole() == 'inside_sales' &&
+         request.resource.data.insideSalesId == request.auth.uid &&
+         request.resource.data.status == 'visit_scheduled' &&
+         get(/databases/$(database)/documents/customers/$(request.resource.data.customerId)).data.assignedInsideSalesId == request.auth.uid)
       );
-      allow delete: if isAdmin();
+      allow update, delete: if false;
     }
 
-    match /call_updates/{callUpdateId} {
-      allow read: if isAdminOrExecutive() || (isActiveEmployee() && resource.data.insideSalesId == request.auth.uid);
-      allow create: if isActiveEmployee() && request.resource.data.insideSalesId == request.auth.uid;
-      allow update: if isAdmin() || (isActiveEmployee() && resource.data.insideSalesId == request.auth.uid);
-      allow delete: if isAdmin();
+    match /call_updates/{updateId} {
+      allow read: if isActiveEmployee() && (
+        isAdminOrExecutive() || resource.data.insideSalesId == request.auth.uid
+      );
+      allow create: if isActiveEmployee() &&
+        myRole() == 'inside_sales' &&
+        request.resource.data.insideSalesId == request.auth.uid &&
+        request.resource.data.outcome in ['interested', 'not_interested', 'follow_up'] &&
+        get(/databases/$(database)/documents/customers/$(request.resource.data.customerId)).data.assignedInsideSalesId == request.auth.uid &&
+        request.resource.data.keys().hasAll(['customerId', 'insideSalesId', 'outcome', 'createdAt']) &&
+        request.resource.data.keys().hasOnly(['customerId', 'insideSalesId', 'outcome', 'notes', 'whatsappSentAt', 'createdAt']);
+      allow update, delete: if false;
     }
 
-    match /visits/{visitId} {
-      allow read: if isAdmin() || (isActiveEmployee() && resource.data.outsideSalesId == request.auth.uid);
-      allow create: if isActiveEmployee() && request.resource.data.outsideSalesId == request.auth.uid;
-      allow update: if isAdmin() || (isActiveEmployee() && resource.data.outsideSalesId == request.auth.uid);
-      allow delete: if isAdmin();
+    // ==========================================
+    // 6. Attendance & Broadcasts
+    // ==========================================
+    match /attendance/{attendanceId} {
+      allow read: if isAdmin() || (isActiveEmployee() && resource.data.employeeId == request.auth.uid);
+      allow create: if isActiveEmployee() && request.resource.data.employeeId == request.auth.uid &&
+        request.resource.data.keys().hasAll(['employeeId', 'loginAt', 'loginAllowed']) &&
+        request.resource.data.keys().hasOnly(['employeeId', 'employeeName', 'employeeEmail', 'loginAt', 'logoutAt', 'loginAllowed', 'loginLatitude', 'loginLongitude', 'failureReason', 'distanceMeters']);
+      allow update: if isActiveEmployee() &&
+        resource.data.employeeId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['logoutAt']);
+      allow delete: if false;
     }
 
     match /broadcast_messages/{messageId} {

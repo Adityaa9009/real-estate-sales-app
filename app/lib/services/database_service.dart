@@ -1,52 +1,131 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+
+import '../firebase_options.dart';
 import '../models/employee.dart';
 import '../models/customer.dart';
 import '../models/visit.dart';
 import '../models/attendance.dart';
 import '../models/broadcast_message.dart';
 
+class CustomerPhoneMigrationReport {
+  final int totalCustomers;
+  final int migratedCustomers;
+  final int failedCustomers;
+  final int totalVisits;
+  final int migratedVisits;
+  final int failedVisits;
+  final List<String> errors;
+
+  const CustomerPhoneMigrationReport({
+    required this.totalCustomers,
+    required this.migratedCustomers,
+    required this.failedCustomers,
+    required this.totalVisits,
+    required this.migratedVisits,
+    required this.failedVisits,
+    required this.errors,
+  });
+
+  @override
+  String toString() =>
+      'MigrationReport(customers: $migratedCustomers/$totalCustomers migrated, $failedCustomers failed; '
+      'visits: $migratedVisits/$totalVisits migrated, $failedVisits failed; errors: ${errors.length})';
+}
+
 class DatabaseService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // ================= EMPLOYEES =================
-  static Stream<List<Employee>> getEmployeesStream({AppRole? roleFilter}) {
+
+  /// Stream of employee profiles
+  static Stream<List<Employee>> getEmployeesStream({
+    AppRole? roleFilter,
+    bool onlyActive = false,
+  }) {
     Query<Map<String, dynamic>> query = _firestore.collection('employees');
     if (roleFilter != null) {
       query = query.where('role', isEqualTo: roleFilter.firestoreValue);
     }
+    if (onlyActive) {
+      query = query.where('active', isEqualTo: true);
+    }
     return query.snapshots().map(
-      (snapshot) => snapshot.docs.map((doc) => Employee.fromFirestore(doc)).toList(),
+      (snapshot) =>
+          snapshot.docs.map((doc) => Employee.fromFirestore(doc)).toList(),
     );
   }
 
-  static Future<void> addEmployee({
-    required String id,
+  /// Adds an employee: creates Auth user and populates /employees
+  static Future<void> registerNewEmployee({
     required String name,
     required String email,
+    required String password,
     required String phone,
     required AppRole role,
     String? dob,
   }) async {
-    await _firestore.collection('employees').doc(id).set({
-      'name': name,
-      'email': email,
-      'phone': phone,
+    final cleanEmail = email.trim().toLowerCase();
+    final trimmedPassword = password.trim();
+    if (trimmedPassword.length < 6) {
+      throw ArgumentError('Password must be at least 6 characters long.');
+    }
+
+    // 1. Attempt secondary auth registration
+    FirebaseApp? secondaryApp;
+    String employeeId;
+    try {
+      secondaryApp = await Firebase.initializeApp(
+        name: 'EmpReg_${DateTime.now().millisecondsSinceEpoch}',
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      final secAuth = FirebaseAuth.instanceFor(app: secondaryApp);
+      final cred = await secAuth.createUserWithEmailAndPassword(
+        email: cleanEmail,
+        password: trimmedPassword,
+      );
+      employeeId = cred.user!.uid;
+    } catch (e) {
+      throw Exception('Failed to create login for this employee: ${e.toString()}');
+    } finally {
+      if (secondaryApp != null) {
+        await secondaryApp.delete();
+      }
+    }
+
+    // 2. Write to /employees
+    await _firestore.collection('employees').doc(employeeId).set({
+      'id': employeeId,
+      'name': name.trim(),
+      'email': cleanEmail,
+      'phone': phone.trim(),
       'role': role.firestoreValue,
       'active': true,
       'createdAt': FieldValue.serverTimestamp(),
-      'dob': ?dob,
-    });
+      if (dob != null && dob.trim().isNotEmpty) 'dob': dob.trim(),
+    }, SetOptions(merge: true));
   }
 
-  static Future<void> updateEmployee(String id, Map<String, dynamic> data) async {
+  /// Deactivates an employee in /employees
+  static Future<void> deactivateEmployee(String id) async {
+    await _firestore.collection('employees').doc(id).update({'active': false});
+  }
+
+  /// Reactivates an employee in /employees
+  static Future<void> reactivateEmployee(String id) async {
+    await _firestore.collection('employees').doc(id).update({'active': true});
+  }
+
+  static Future<void> updateEmployee(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
     await _firestore.collection('employees').doc(id).update(data);
   }
 
-  static Future<void> deleteEmployee(String id) async {
-    await _firestore.collection('employees').doc(id).delete();
-  }
+  // ================= CUSTOMERS & CONTACT PRIVACY =================
 
-  // ================= CUSTOMERS =================
   static Stream<List<Customer>> getCustomersStream({
     CustomerStatus? statusFilter,
     String? assignedInsideSalesId,
@@ -58,17 +137,25 @@ class DatabaseService {
       query = query.where('status', isEqualTo: statusFilter.firestoreValue);
     }
     if (assignedInsideSalesId != null) {
-      query = query.where('assignedInsideSalesId', isEqualTo: assignedInsideSalesId);
+      query = query.where(
+        'assignedInsideSalesId',
+        isEqualTo: assignedInsideSalesId,
+      );
     }
     if (assignedOutsideSalesId != null) {
-      query = query.where('assignedOutsideSalesId', isEqualTo: assignedOutsideSalesId);
+      query = query.where(
+        'assignedOutsideSalesId',
+        isEqualTo: assignedOutsideSalesId,
+      );
     }
 
     return query.snapshots().map(
-      (snapshot) => snapshot.docs.map((doc) => Customer.fromFirestore(doc)).toList(),
+      (snapshot) =>
+          snapshot.docs.map((doc) => Customer.fromFirestore(doc)).toList(),
     );
   }
 
+  /// Adds a new customer with root maskedPhone and isolated private contact subcollection
   static Future<void> addCustomer({
     required String name,
     required String phone,
@@ -77,15 +164,49 @@ class DatabaseService {
     String? propertyNotes,
     CustomerStatus status = CustomerStatus.unassigned,
   }) async {
-    await _firestore.collection('customers').add({
-      'name': name,
-      'phone': phone,
-      'email': email,
-      'budget': budget,
-      'propertyNotes': propertyNotes,
+    final custRef = _firestore.collection('customers').doc();
+    final masked = Customer.maskPhoneNumber(phone);
+
+    final batch = _firestore.batch();
+
+    // 1. Root customer doc (masked phone only, id matching doc.id)
+    batch.set(custRef, {
+      'id': custRef.id,
+      'name': name.trim(),
+      'maskedPhone': masked,
+      if (email != null && email.trim().isNotEmpty) 'email': email.trim(),
+      if (budget != null && budget.trim().isNotEmpty) 'budget': budget.trim(),
+      if (propertyNotes != null && propertyNotes.trim().isNotEmpty)
+        'propertyNotes': propertyNotes.trim(),
       'status': status.firestoreValue,
       'createdAt': FieldValue.serverTimestamp(),
     });
+
+    // 2. Private contact subcollection (/customers/{id}/private/contact)
+    final contactRef = custRef.collection('private').doc('contact');
+    batch.set(contactRef, {
+      'customerId': custRef.id,
+      'phone': phone.trim(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
+  }
+
+  /// On-demand fetch of customer's actual phone from restricted private subcollection
+  static Future<String?> getCustomerPrivateContact(String customerId) async {
+    try {
+      final doc = await _firestore
+          .collection('customers')
+          .doc(customerId)
+          .collection('private')
+          .doc('contact')
+          .get();
+      if (!doc.exists) return null;
+      return doc.data()?['phone'] as String?;
+    } catch (_) {
+      return null;
+    }
   }
 
   static Future<void> assignCustomerToInsideSales({
@@ -93,11 +214,24 @@ class DatabaseService {
     required String insideSalesId,
     required String insideSalesName,
   }) async {
-    await _firestore.collection('customers').doc(customerId).update({
+    final batch = _firestore.batch();
+
+    batch.update(_firestore.collection('customers').doc(customerId), {
       'assignedInsideSalesId': insideSalesId,
       'assignedInsideSalesName': insideSalesName,
       'status': CustomerStatus.assignedToInsideSales.firestoreValue,
     });
+
+    final assignRef = _firestore.collection('customer_assignments').doc();
+    batch.set(assignRef, {
+      'customerId': customerId,
+      'insideSalesId': insideSalesId,
+      'assignedBy': FirebaseAuth.instance.currentUser?.uid ?? 'executive',
+      'status': 'assigned_to_inside_sales',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
   }
 
   static Future<void> updateCustomerStatus({
@@ -109,87 +243,199 @@ class DatabaseService {
     });
   }
 
+  static Future<void> recordCallUpdate({
+    required String customerId,
+    required String outcome,
+    String? notes,
+    bool whatsappSent = false,
+  }) async {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final updateRef = _firestore.collection('call_updates').doc();
+    await updateRef.set({
+      'customerId': customerId,
+      'insideSalesId': currentUid,
+      'outcome': outcome,
+      if (notes != null && notes.isNotEmpty) 'notes': notes,
+      if (whatsappSent) 'whatsappSentAt': FieldValue.serverTimestamp(),
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // ================= ATOMIC VISIT OPERATIONS =================
+
+  /// Inside Sales schedules an Outside Sales visit: updates customer and creates visit atomically
   static Future<void> scheduleOutsideSalesVisit({
     required String customerId,
     required String customerName,
-    required String customerPhone,
+    required String maskedPhone,
     required String outsideSalesId,
     required String outsideSalesName,
     required DateTime visitDateTime,
     String? propertyNotes,
   }) async {
-    // 1. Update customer
-    await _firestore.collection('customers').doc(customerId).update({
+    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final currentInsideSalesName =
+        FirebaseAuth.instance.currentUser?.displayName ?? 'Inside Sales';
+    final visitRef = _firestore.collection('visits').doc();
+    final customerRef = _firestore.collection('customers').doc(customerId);
+
+    final batch = _firestore.batch();
+
+    // 1. Paired Customer update
+    batch.update(customerRef, {
+      'status': CustomerStatus.visitScheduled.firestoreValue,
       'assignedOutsideSalesId': outsideSalesId,
       'assignedOutsideSalesName': outsideSalesName,
-      'status': CustomerStatus.visitScheduled.firestoreValue,
+      'activeVisitId': visitRef.id,
     });
 
-    // 2. Create entry in visits
-    await _firestore.collection('visits').add({
+    // 2. Paired Visit create
+    batch.set(visitRef, {
+      'id': visitRef.id,
       'customerId': customerId,
       'customerName': customerName,
-      'customerPhone': customerPhone,
+      'maskedPhone': maskedPhone,
+      'insideSalesId': currentUid,
+      'insideSalesName': currentInsideSalesName,
       'outsideSalesId': outsideSalesId,
       'outsideSalesName': outsideSalesName,
       'scheduledAt': Timestamp.fromDate(visitDateTime),
-      'status': 'visit_scheduled',
-      'notes': propertyNotes,
+      'status': VisitStatus.visitScheduled.firestoreValue,
+      if (propertyNotes != null && propertyNotes.isNotEmpty)
+        'notes': propertyNotes,
+      'createdAt': FieldValue.serverTimestamp(),
     });
+
+    await batch.commit();
   }
 
-  // ================= VISITS =================
-  static Stream<List<Visit>> getVisitsStream({String? outsideSalesId}) {
+  /// Outside Sales marks visit reached: atomically updates visit and customer to visit_in_progress
+  static Future<void> reachVisit({
+    required String visitId,
+    required String customerId,
+  }) async {
+    final batch = _firestore.batch();
+
+    batch.update(_firestore.collection('visits').doc(visitId), {
+      'status': VisitStatus.visitInProgress.firestoreValue,
+      'reachedAt': FieldValue.serverTimestamp(),
+    });
+
+    batch.update(_firestore.collection('customers').doc(customerId), {
+      'status': CustomerStatus.visitInProgress.firestoreValue,
+    });
+
+    await batch.commit();
+  }
+
+  /// Outside Sales marks visit completed: atomically updates visit and customer to visit_completed
+  static Future<void> completeVisit({
+    required String visitId,
+    required String customerId,
+    String? notes,
+  }) async {
+    final batch = _firestore.batch();
+
+    batch.update(_firestore.collection('visits').doc(visitId), {
+      'status': VisitStatus.visitCompleted.firestoreValue,
+      'completedAt': FieldValue.serverTimestamp(),
+      if (notes != null && notes.isNotEmpty) 'notes': notes,
+    });
+
+    batch.update(_firestore.collection('customers').doc(customerId), {
+      'status': CustomerStatus.visitCompleted.firestoreValue,
+    });
+
+    await batch.commit();
+  }
+
+  static Stream<List<Visit>> getVisitsStream({
+    String? outsideSalesId,
+    String? insideSalesId,
+  }) {
     Query<Map<String, dynamic>> query = _firestore.collection('visits');
     if (outsideSalesId != null) {
       query = query.where('outsideSalesId', isEqualTo: outsideSalesId);
     }
+    if (insideSalesId != null) {
+      query = query.where('insideSalesId', isEqualTo: insideSalesId);
+    }
     return query.snapshots().map(
-      (snapshot) => snapshot.docs.map((doc) => Visit.fromFirestore(doc)).toList(),
+      (snapshot) =>
+          snapshot.docs.map((doc) => Visit.fromFirestore(doc)).toList(),
     );
   }
 
-  static Future<void> updateVisitStatus(String visitId, {
-    required String status,
-    DateTime? reachedAt,
-    DateTime? completedAt,
-    String? recordingPath,
-    String? selfiePath,
-  }) async {
-    final Map<String, dynamic> updateData = {'status': status};
-    if (reachedAt != null) updateData['reachedAt'] = Timestamp.fromDate(reachedAt);
-    if (completedAt != null) updateData['completedAt'] = Timestamp.fromDate(completedAt);
-    if (recordingPath != null) updateData['recordingPath'] = recordingPath;
-    if (selfiePath != null) updateData['selfiePath'] = selfiePath;
-
-    await _firestore.collection('visits').doc(visitId).update(updateData);
-  }
-
   // ================= ATTENDANCE =================
+
   static Stream<List<Attendance>> getAttendanceStream() {
     return _firestore
         .collection('attendance')
         .orderBy('loginAt', descending: true)
         .limit(100)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => Attendance.fromFirestore(doc)).toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => Attendance.fromFirestore(doc))
+              .toList(),
+        );
+  }
+
+  static Future<String> recordAttendanceLogin({
+    required String employeeId,
+    required String employeeName,
+    required String employeeEmail,
+    required bool loginAllowed,
+    double? latitude,
+    double? longitude,
+    double? distanceMeters,
+    String? failureReason,
+  }) async {
+    final ref = _firestore.collection('attendance').doc();
+    await ref.set({
+      'employeeId': employeeId,
+      'employeeName': employeeName,
+      'employeeEmail': employeeEmail,
+      'loginAt': FieldValue.serverTimestamp(),
+      'loginAllowed': loginAllowed,
+      'loginLatitude': ?latitude,
+      'loginLongitude': ?longitude,
+      'distanceMeters': ?distanceMeters,
+      'failureReason': ?failureReason,
+    });
+    return ref.id;
+  }
+
+  static Future<void> recordAttendanceLogout(String attendanceDocId) async {
+    await _firestore.collection('attendance').doc(attendanceDocId).update({
+      'logoutAt': FieldValue.serverTimestamp(),
+    });
   }
 
   // ================= BROADCAST MESSAGES =================
+
   static Stream<List<BroadcastMessage>> getBroadcastStream() {
     return _firestore
         .collection('broadcast_messages')
         .orderBy('createdAt', descending: true)
         .limit(20)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => BroadcastMessage.fromFirestore(doc)).toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => BroadcastMessage.fromFirestore(doc))
+              .toList(),
+        );
   }
 
   static Future<void> sendBroadcast({
     required String title,
     required String message,
     required String createdBy,
-    List<String> targetRoles = const ['inside_sales', 'outside_sales', 'executive'],
+    List<String> targetRoles = const [
+      'inside_sales',
+      'outside_sales',
+      'executive',
+    ],
   }) async {
     await _firestore.collection('broadcast_messages').add({
       'title': title,
@@ -200,219 +446,120 @@ class DatabaseService {
     });
   }
 
-  // ================= 1-CLICK DEMO SEEDER =================
-  /// Populates realistic data in Firestore for complete internship demo
-  static Future<void> seedDemoData() async {
-    final batch = _firestore.batch();
+  // ================= MIGRATION & BACKFILL =================
 
-    // 1. Demo Employees
-    final employees = [
-      {
-        'id': 'demo_admin_id',
-        'name': 'Aditya Duhan (Admin)',
-        'email': 'admin@realestate.com',
-        'phone': '9876543210',
-        'role': 'admin',
-        'active': true,
-        'createdAt': FieldValue.serverTimestamp(),
-      },
-      {
-        'id': 'demo_exec_id',
-        'name': 'Rajesh Sharma (Executive)',
-        'email': 'executive@realestate.com',
-        'phone': '9811223344',
-        'role': 'executive',
-        'active': true,
-        'createdAt': FieldValue.serverTimestamp(),
-      },
-      {
-        'id': 'demo_inside_id',
-        'name': 'Sudheer Kumar (Inside Sales)',
-        'email': 'inside.sales@realestate.com',
-        'phone': '9899001122',
-        'role': 'inside_sales',
-        'active': true,
-        'createdAt': FieldValue.serverTimestamp(),
-      },
-      {
-        'id': 'demo_outside_id',
-        'name': 'Venkatesh Rao (Outside Sales)',
-        'email': 'outside.sales@realestate.com',
-        'phone': '9844556677',
-        'role': 'outside_sales',
-        'active': true,
-        'createdAt': FieldValue.serverTimestamp(),
-      },
-      {
-        'id': 'demo_outside_2',
-        'name': 'Usha Patel (Outside Sales)',
-        'email': 'usha.patel@realestate.com',
-        'phone': '9822334455',
-        'role': 'outside_sales',
-        'active': true,
-        'createdAt': FieldValue.serverTimestamp(),
-      },
-    ];
+  /// Migrates legacy customers and visits:
+  /// - Backfills `customers/{customerId}.id = customerId`
+  /// - Backfills `visits/{visitId}.id = visitId`
+  /// - Populates `/customers/{customerId}/private/contact` with `{customerId, phone, updatedAt}`
+  /// - Replaces raw `phone` with `maskedPhone` on customers
+  /// - Replaces raw `customerPhone` with `maskedPhone` on visits and strips legacy media fields
+  /// Returns a detailed `CustomerPhoneMigrationReport`.
+  static Future<CustomerPhoneMigrationReport>
+  migrateCustomerPhonePrivacy() async {
+    final List<String> errors = [];
+    int totalCustomers = 0;
+    int migratedCustomers = 0;
+    int failedCustomers = 0;
 
-    for (var emp in employees) {
-      final ref = _firestore.collection('employees').doc(emp['id'] as String);
-      batch.set(ref, emp);
-    }
+    int totalVisits = 0;
+    int migratedVisits = 0;
+    int failedVisits = 0;
 
-    // 2. Demo Customers
-    final customers = [
-      {
-        'name': 'Ajith Kumar',
-        'phone': '9876544892',
-        'email': 'ajith@gmail.com',
-        'budget': '1.5 - 2.0 Cr',
-        'status': 'assigned_to_inside_sales',
-        'assignedInsideSalesId': 'demo_inside_id',
-        'assignedInsideSalesName': 'Sudheer Kumar',
-        'propertyNotes': 'Looking for 3BHK high-rise apartment with golf view',
-        'createdAt': FieldValue.serverTimestamp(),
-      },
-      {
-        'name': 'Sanjay Khan',
-        'phone': '9812343541',
-        'email': 'sanjay.khan@yahoo.com',
-        'budget': '80 Lakhs - 1.2 Cr',
-        'status': 'interested',
-        'assignedInsideSalesId': 'demo_inside_id',
-        'assignedInsideSalesName': 'Sudheer Kumar',
-        'propertyNotes': 'Ready to move 2BHK near metro station',
-        'createdAt': FieldValue.serverTimestamp(),
-      },
-      {
-        'name': 'Sharath Reddy',
-        'phone': '9722335985',
-        'email': 'sharath.r@outlook.com',
-        'budget': '2.5 - 3.5 Cr',
-        'status': 'visit_scheduled',
-        'assignedInsideSalesId': 'demo_inside_id',
-        'assignedInsideSalesName': 'Sudheer Kumar',
-        'assignedOutsideSalesId': 'demo_outside_id',
-        'assignedOutsideSalesName': 'Venkatesh Rao',
-        'propertyNotes': 'Luxury Villa on Dwarka Expressway',
-        'createdAt': FieldValue.serverTimestamp(),
-      },
-      {
-        'name': 'Narendra Modi',
-        'phone': '9899009459',
-        'email': 'n.modi@company.in',
-        'budget': '4.0 - 6.0 Cr',
-        'status': 'visit_completed',
-        'assignedInsideSalesId': 'demo_inside_id',
-        'assignedInsideSalesName': 'Sudheer Kumar',
-        'assignedOutsideSalesId': 'demo_outside_id',
-        'assignedOutsideSalesName': 'Venkatesh Rao',
-        'propertyNotes': 'Commercial Penthouse',
-        'createdAt': FieldValue.serverTimestamp(),
-      },
-      {
-        'name': 'Rohan Sharma',
-        'phone': '9811005678',
-        'email': 'rohan.s@gmail.com',
-        'budget': '60 - 75 Lakhs',
-        'status': 'not_interested',
-        'assignedInsideSalesId': 'demo_inside_id',
-        'assignedInsideSalesName': 'Sudheer Kumar',
-        'propertyNotes': 'Budget constraints, will review in 6 months',
-        'createdAt': FieldValue.serverTimestamp(),
-      },
-      {
-        'name': 'Janardan Rao',
-        'phone': '9822333541',
-        'email': 'j.rao@tech.com',
-        'budget': '1.8 Cr',
-        'status': 'unassigned',
-        'propertyNotes': 'Inquired through digital campaign',
-        'createdAt': FieldValue.serverTimestamp(),
-      },
-      {
-        'name': 'Bala Subramanian',
-        'phone': '9944558579',
-        'email': 'bala.subra@live.com',
-        'budget': '2.2 Cr',
-        'status': 'unassigned',
-        'propertyNotes': 'Seeking gated community duplex',
-        'createdAt': FieldValue.serverTimestamp(),
+    // 1. Migrate customers
+    try {
+      final custSnapshots = await _firestore.collection('customers').get();
+      totalCustomers = custSnapshots.docs.length;
+
+      for (var doc in custSnapshots.docs) {
+        try {
+          final data = doc.data();
+          final rawPhone =
+              data['phone'] as String? ?? data['rawPhone'] as String? ?? '';
+          final maskedPhone =
+              data['maskedPhone'] as String? ??
+              Customer.maskPhoneNumber(rawPhone);
+
+          final batch = _firestore.batch();
+
+          // Write private contact if rawPhone exists
+          if (rawPhone.isNotEmpty) {
+            final contactRef = doc.reference
+                .collection('private')
+                .doc('contact');
+            batch.set(contactRef, {
+              'customerId': doc.id,
+              'phone': rawPhone,
+              'updatedAt': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
+          }
+
+          // Backfill id, set maskedPhone, remove raw phone fields
+          batch.update(doc.reference, {
+            'id': doc.id,
+            'maskedPhone': maskedPhone,
+            'phone': FieldValue.delete(),
+            'rawPhone': FieldValue.delete(),
+            'contactPhone': FieldValue.delete(),
+            'customerPhone': FieldValue.delete(),
+          });
+
+          await batch.commit();
+          migratedCustomers++;
+        } catch (e) {
+          failedCustomers++;
+          errors.add('Customer ${doc.id} migration failed: $e');
+        }
       }
-    ];
-
-    for (var cust in customers) {
-      final ref = _firestore.collection('customers').doc();
-      batch.set(ref, cust);
+    } catch (e) {
+      errors.add('Failed to fetch customers for migration: $e');
     }
 
-    // 3. Demo Visits
-    final visits = [
-      {
-        'customerId': 'demo_cust_1',
-        'customerName': 'Sharath Reddy',
-        'customerPhone': '9722335985',
-        'outsideSalesId': 'demo_outside_id',
-        'outsideSalesName': 'Venkatesh Rao',
-        'scheduledAt': Timestamp.fromDate(DateTime.now().add(const Duration(hours: 3))),
-        'status': 'visit_scheduled',
-        'notes': 'Site visit at Tower 4, Royal Palms DLF Phase 5',
-      },
-      {
-        'customerId': 'demo_cust_2',
-        'customerName': 'Narendra Modi',
-        'customerPhone': '9899009459',
-        'outsideSalesId': 'demo_outside_id',
-        'outsideSalesName': 'Venkatesh Rao',
-        'scheduledAt': Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 4))),
-        'reachedAt': Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 3, minutes: 45))),
-        'completedAt': Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 3))),
-        'recordingPath': 'audio_visit_narendra_modi_dlf.m4a',
-        'selfiePath': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
-        'status': 'completed',
-        'notes': 'Customer very happy with penthouse structure, token advance expected this Friday.',
+    // 2. Migrate visits
+    try {
+      final visitSnapshots = await _firestore.collection('visits').get();
+      totalVisits = visitSnapshots.docs.length;
+
+      for (var doc in visitSnapshots.docs) {
+        try {
+          final data = doc.data();
+          final rawPhone =
+              data['customerPhone'] as String? ??
+              data['phone'] as String? ??
+              '';
+          final maskedPhone =
+              data['maskedPhone'] as String? ?? Visit.maskPhoneNumber(rawPhone);
+
+          final updateData = <String, dynamic>{
+            'id': doc.id,
+            'maskedPhone': maskedPhone,
+            'customerPhone': FieldValue.delete(),
+            'phone': FieldValue.delete(),
+            'recordingPath': FieldValue.delete(),
+            'selfiePath': FieldValue.delete(),
+            'recordingUrl': FieldValue.delete(),
+            'selfieUrl': FieldValue.delete(),
+          };
+
+          await doc.reference.update(updateData);
+          migratedVisits++;
+        } catch (e) {
+          failedVisits++;
+          errors.add('Visit ${doc.id} migration failed: $e');
+        }
       }
-    ];
-
-    for (var v in visits) {
-      final ref = _firestore.collection('visits').doc();
-      batch.set(ref, v);
+    } catch (e) {
+      errors.add('Failed to fetch visits for migration: $e');
     }
 
-    // 4. Demo Attendance
-    final attendanceLogs = [
-      {
-        'employeeId': 'demo_inside_id',
-        'employeeName': 'Sudheer Kumar',
-        'employeeEmail': 'inside.sales@realestate.com',
-        'loginAt': Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 5))),
-        'logoutAt': null,
-        'loginAllowed': true,
-      },
-      {
-        'employeeId': 'demo_outside_id',
-        'employeeName': 'Venkatesh Rao',
-        'employeeEmail': 'outside.sales@realestate.com',
-        'loginAt': Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 6))),
-        'logoutAt': null,
-        'loginAllowed': true,
-      }
-    ];
-
-    for (var a in attendanceLogs) {
-      final ref = _firestore.collection('attendance').doc();
-      batch.set(ref, a);
-    }
-
-    // 5. Broadcast message
-    final broadcastRef = _firestore.collection('broadcast_messages').doc();
-    batch.set(broadcastRef, {
-      'title': 'Grand Festive Incentive Announcement 🎉',
-      'message': 'All site visits scheduled this weekend are eligible for 2x sales bonus! Great job team!',
-      'createdBy': 'Aditya Duhan (Admin)',
-      'targetRoles': ['inside_sales', 'outside_sales', 'executive'],
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-
-    await batch.commit();
+    return CustomerPhoneMigrationReport(
+      totalCustomers: totalCustomers,
+      migratedCustomers: migratedCustomers,
+      failedCustomers: failedCustomers,
+      totalVisits: totalVisits,
+      migratedVisits: migratedVisits,
+      failedVisits: failedVisits,
+      errors: errors,
+    );
   }
 }

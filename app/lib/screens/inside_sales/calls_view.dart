@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import '../../config/app_theme.dart';
 import '../../models/customer.dart';
 import '../../models/employee.dart';
@@ -23,7 +25,13 @@ class _CallsViewState extends State<CallsView> {
           children: [
             const Icon(Icons.thumb_up_alt_rounded, color: AppColors.success),
             const SizedBox(width: 10),
-            Text('Mark ${customer.name} as Interested', style: const TextStyle(fontSize: 16, color: AppColors.textPrimary)),
+            Text(
+              'Mark ${customer.name} as Interested',
+              style: const TextStyle(
+                fontSize: 16,
+                color: AppColors.textPrimary,
+              ),
+            ),
           ],
         ),
         content: Column(
@@ -42,7 +50,10 @@ class _CallsViewState extends State<CallsView> {
                 Expanded(
                   child: Text(
                     '1. Send WhatsApp message with property brochure and thank you note.',
-                    style: TextStyle(fontSize: 12, color: AppColors.textPrimary),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
               ],
@@ -50,12 +61,19 @@ class _CallsViewState extends State<CallsView> {
             const SizedBox(height: 8),
             const Row(
               children: [
-                Icon(Icons.calendar_month_rounded, color: AppColors.secondary, size: 18),
+                Icon(
+                  Icons.calendar_month_rounded,
+                  color: AppColors.secondary,
+                  size: 18,
+                ),
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     '2. Schedule site visit with an Outside Sales employee.',
-                    style: TextStyle(fontSize: 12, color: AppColors.textPrimary),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
               ],
@@ -63,7 +81,10 @@ class _CallsViewState extends State<CallsView> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
             onPressed: () async {
@@ -74,9 +95,9 @@ class _CallsViewState extends State<CallsView> {
                 status: CustomerStatus.interested,
               );
               // 2. Trigger WhatsApp
-              await WhatsAppService.sendInterestedMessage(
+              await WhatsAppService.sendInterestedMessageByCustomerId(
+                customerId: customer.id,
                 customerName: customer.name,
-                customerPhone: customer.phone,
               );
               // 3. Open schedule dialog
               if (mounted) _openScheduleVisitDialog(customer);
@@ -97,7 +118,13 @@ class _CallsViewState extends State<CallsView> {
           children: [
             const Icon(Icons.thumb_down_alt_rounded, color: AppColors.danger),
             const SizedBox(width: 10),
-            Text('Mark ${customer.name} as Not Interested', style: const TextStyle(fontSize: 16, color: AppColors.textPrimary)),
+            Text(
+              'Mark ${customer.name} as Not Interested',
+              style: const TextStyle(
+                fontSize: 16,
+                color: AppColors.textPrimary,
+              ),
+            ),
           ],
         ),
         content: const Text(
@@ -105,7 +132,10 @@ class _CallsViewState extends State<CallsView> {
           style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
             onPressed: () async {
@@ -114,9 +144,9 @@ class _CallsViewState extends State<CallsView> {
                 customerId: customer.id,
                 status: CustomerStatus.notInterested,
               );
-              await WhatsAppService.sendNotInterestedMessage(
+              await WhatsAppService.sendNotInterestedMessageByCustomerId(
+                customerId: customer.id,
                 customerName: customer.name,
-                customerPhone: customer.phone,
               );
             },
             child: const Text('Mark & Send WhatsApp'),
@@ -135,7 +165,10 @@ class _CallsViewState extends State<CallsView> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: AppColors.surfaceCard,
-          title: Text('Schedule Visit for ${customer.name}', style: const TextStyle(fontSize: 16, color: AppColors.textPrimary)),
+          title: Text(
+            'Schedule Visit for ${customer.name}',
+            style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
+          ),
           content: SizedBox(
             width: 420,
             child: Column(
@@ -144,15 +177,24 @@ class _CallsViewState extends State<CallsView> {
               children: [
                 const Text(
                   'Select Outside Sales representative and appointment time:',
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 14),
                 StreamBuilder<List<Employee>>(
-                  stream: DatabaseService.getEmployeesStream(roleFilter: AppRole.outsideSales),
+                  stream: DatabaseService.getEmployeesStream(
+                    roleFilter: AppRole.outsideSales,
+                    onlyActive: true,
+                  ),
                   builder: (context, snapshot) {
                     final reps = snapshot.data ?? [];
                     if (reps.isEmpty) {
-                      return const Text('No active Outside Sales employees found.', style: TextStyle(color: AppColors.danger));
+                      return const Text(
+                        'No active Outside Sales employees found.',
+                        style: TextStyle(color: AppColors.danger),
+                      );
                     }
 
                     return Column(
@@ -163,12 +205,31 @@ class _CallsViewState extends State<CallsView> {
                           leading: const CircleAvatar(
                             backgroundColor: AppColors.success,
                             radius: 16,
-                            child: Icon(Icons.directions_walk_rounded, color: Colors.white, size: 16),
+                            child: Icon(
+                              Icons.directions_walk_rounded,
+                              color: Colors.white,
+                              size: 16,
+                            ),
                           ),
-                          title: Text(rep.name, style: const TextStyle(fontSize: 14, color: AppColors.textPrimary)),
-                          subtitle: Text(rep.phone, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                          title: Text(
+                            rep.name,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          subtitle: const Text(
+                            'Field Representative',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
                           trailing: ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary, visualDensity: VisualDensity.compact),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.secondary,
+                              visualDensity: VisualDensity.compact,
+                            ),
                             onPressed: () async {
                               final fullDateTime = DateTime(
                                 selectedDate.year,
@@ -182,7 +243,7 @@ class _CallsViewState extends State<CallsView> {
                               await DatabaseService.scheduleOutsideSalesVisit(
                                 customerId: customer.id,
                                 customerName: customer.name,
-                                customerPhone: customer.phone,
+                                maskedPhone: customer.maskedPhone,
                                 outsideSalesId: rep.id,
                                 outsideSalesName: rep.name,
                                 visitDateTime: fullDateTime,
@@ -193,7 +254,9 @@ class _CallsViewState extends State<CallsView> {
                               messenger.showSnackBar(
                                 SnackBar(
                                   backgroundColor: AppColors.success,
-                                  content: Text('Site visit scheduled with ${rep.name}!'),
+                                  content: Text(
+                                    'Site visit scheduled with ${rep.name}!',
+                                  ),
                                 ),
                               );
                             },
@@ -208,7 +271,10 @@ class _CallsViewState extends State<CallsView> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Close'),
+            ),
           ],
         ),
       ),
@@ -217,8 +283,11 @@ class _CallsViewState extends State<CallsView> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
     return StreamBuilder<List<Customer>>(
-      stream: DatabaseService.getCustomersStream(),
+      stream: DatabaseService.getCustomersStream(
+        assignedInsideSalesId: currentUid,
+      ),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -226,17 +295,19 @@ class _CallsViewState extends State<CallsView> {
 
         final customers = snapshot.data ?? [];
         if (customers.isEmpty) {
-          return Center(
+          return const Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.support_agent_rounded, size: 54, color: AppColors.textMuted),
-                const SizedBox(height: 12),
-                const Text('No leads assigned to call.', style: TextStyle(color: AppColors.textSecondary)),
-                const SizedBox(height: 12),
-                ElevatedButton(
-                  onPressed: () => DatabaseService.seedDemoData(),
-                  child: const Text('Seed Sample Leads'),
+                Icon(
+                  Icons.support_agent_rounded,
+                  size: 54,
+                  color: AppColors.textMuted,
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'No leads assigned to call.',
+                  style: TextStyle(color: AppColors.textSecondary),
                 ),
               ],
             ),

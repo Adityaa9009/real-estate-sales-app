@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import '../../config/app_theme.dart';
 import '../../models/customer.dart';
 import '../../models/employee.dart';
@@ -10,13 +12,20 @@ class InterestedView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
     return StreamBuilder<List<Customer>>(
-      stream: DatabaseService.getCustomersStream(statusFilter: CustomerStatus.interested),
+      stream: DatabaseService.getCustomersStream(
+        statusFilter: CustomerStatus.interested,
+        assignedInsideSalesId: currentUid,
+      ),
       builder: (context, snapshot) {
         final interested = snapshot.data ?? [];
         if (interested.isEmpty) {
           return const Center(
-            child: Text('No customers currently tagged as Interested.', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(
+              'No customers currently tagged as Interested.',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           );
         }
 
@@ -41,26 +50,42 @@ class InterestedView extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceCard,
-        title: Text('Assign Site Visit: ${customer.name}', style: const TextStyle(fontSize: 16, color: AppColors.textPrimary)),
+        title: Text(
+          'Assign Site Visit: ${customer.name}',
+          style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
+        ),
         content: StreamBuilder<List<Employee>>(
-          stream: DatabaseService.getEmployeesStream(roleFilter: AppRole.outsideSales),
+          stream: DatabaseService.getEmployeesStream(
+            roleFilter: AppRole.outsideSales,
+            onlyActive: true,
+          ),
           builder: (context, snapshot) {
             final outsideStaff = snapshot.data ?? [];
-            if (outsideStaff.isEmpty) return const Text('No Outside Sales staff found.');
+            if (outsideStaff.isEmpty) {
+              return const Text('No Outside Sales staff found.');
+            }
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: outsideStaff.map((rep) {
                 return ListTile(
-                  title: Text(rep.name, style: const TextStyle(color: AppColors.textPrimary)),
-                  subtitle: Text(rep.phone, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  title: Text(
+                    rep.name,
+                    style: const TextStyle(color: AppColors.textPrimary),
+                  ),
+                  subtitle: const Text(
+                    'Field Representative',
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  ),
                   trailing: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.secondary,
+                    ),
                     onPressed: () async {
                       final time = DateTime.now().add(const Duration(hours: 4));
                       await DatabaseService.scheduleOutsideSalesVisit(
                         customerId: customer.id,
                         customerName: customer.name,
-                        customerPhone: customer.phone,
+                        maskedPhone: customer.maskedPhone,
                         outsideSalesId: rep.id,
                         outsideSalesName: rep.name,
                         visitDateTime: time,

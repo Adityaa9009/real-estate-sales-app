@@ -3,41 +3,62 @@
 This is the shared source of truth. Do not change field names or status values without agreement from the team lead.
 
 ## `employees`
+Full employee profile (Admin or Self read-only; Admin-only update).
 
 | Field | Type | Notes |
 |---|---|---|
 | `id` | string | Firebase Auth user ID |
 | `name` | string | Employee full name |
 | `email` | string | Unique login email |
-| `phone` | string | Employee phone number |
+| `phone` | string | Employee phone number (PII) |
 | `role` | string | `admin`, `executive`, `inside_sales`, or `outside_sales` |
 | `profileImageUrl` | string? | Private storage URL/path |
 | `active` | boolean | Disabled employees cannot use the app |
 | `createdAt` | timestamp | Creation date |
+| `dob` | string? | Date of birth |
 
 ## `customers`
+Root customer documents must NEVER contain raw phone numbers.
 
 | Field | Type | Notes |
 |---|---|---|
-| `id` | string | Customer ID |
+| `id` | string | Customer document ID (backfilled during migration) |
 | `name` | string | Customer name |
-| `phone` | string | Never display the full value to sales staff |
+| `maskedPhone` | string | Masked phone number (e.g., '******4285') |
 | `email` | string? | Customer email |
-| `status` | string | See status lifecycle below |
+| `status` | string | Lifecycle: `unassigned`, `assigned_to_inside_sales`, `interested`, `not_interested`, `visit_scheduled`, `visit_in_progress`, `visit_completed` |
+| `budget` | string? | Budget range |
+| `propertyNotes` | string? | Property preferences/notes |
 | `assignedInsideSalesId` | string? | Employee ID |
+| `assignedInsideSalesName` | string? | Employee Name |
 | `assignedOutsideSalesId` | string? | Employee ID |
+| `assignedOutsideSalesName` | string? | Employee Name |
+| `activeVisitId` | string? | Paired active visit document ID |
 | `createdAt` | timestamp | Creation date |
+
+### `customers/{customerId}/private/contact`
+Restricted subcollection storing actual raw phone numbers. Accessible only by Admin and currently assigned Inside/Outside Sales staff.
+
+| Field | Type | Notes |
+|---|---|---|
+| `customerId` | string | Matches parent customer ID |
+| `phone` | string | Raw phone number for on-demand calling/WhatsApp |
+| `updatedAt` | timestamp | Last updated timestamp |
 
 ## `attendance`
 
 | Field | Type |
 |---|---|
 | `employeeId` | string |
+| `employeeName` | string? |
+| `employeeEmail` | string? |
 | `loginAt` | timestamp |
 | `logoutAt` | timestamp? |
 | `loginLatitude` | number? |
 | `loginLongitude` | number? |
 | `loginAllowed` | boolean |
+| `failureReason` | string? |
+| `distanceMeters` | number? |
 
 ## `customer_assignments`
 
@@ -63,17 +84,33 @@ This is the shared source of truth. Do not change field names or status values w
 | `createdAt` | timestamp |
 
 ## `visits`
+Root visit documents contain only scheduling and status metadata. Media proofs are strictly prohibited from the root document.
 
-| Field | Type |
-|---|---|
-| `customerId` | string |
-| `outsideSalesId` | string |
-| `scheduledAt` | timestamp |
-| `reachedAt` | timestamp? |
-| `completedAt` | timestamp? |
-| `recordingPath` | string? |
-| `selfiePath` | string? |
-| `status` | string |
+| Field | Type | Notes |
+|---|---|---|
+| `id` | string | Visit document ID (backfilled during migration) |
+| `customerId` | string | Associated Customer ID |
+| `customerName` | string | Customer name |
+| `maskedPhone` | string | Masked phone number (e.g., '******4285') |
+| `insideSalesId` | string | Scheduling Inside Sales employee ID |
+| `insideSalesName` | string? | Inside Sales employee name |
+| `outsideSalesId` | string | Assigned Outside Sales employee ID |
+| `outsideSalesName` | string? | Outside Sales employee name |
+| `scheduledAt` | timestamp | Appointment scheduled time |
+| `reachedAt` | timestamp? | Time outside sales arrived |
+| `completedAt` | timestamp? | Time visit was completed |
+| `status` | string | `visit_scheduled`, `visit_in_progress`, `visit_completed` |
+| `notes` | string? | Visit outcome/notes |
+| `createdAt` | timestamp? | Creation date |
+
+### `visits/{visitId}/private/media`
+Restricted subcollection storing media verification proofs. Accessible only by Admin and the assigned Outside Sales representative.
+
+| Field | Type | Notes |
+|---|---|---|
+| `recordingUrl` | string? | Audio recording path |
+| `selfieUrl` | string? | Selfie verification path |
+| `createdAt` | timestamp | Created date |
 
 ## `broadcast_messages`
 
@@ -85,13 +122,13 @@ This is the shared source of truth. Do not change field names or status values w
 | `targetRoles` | string array |
 | `createdAt` | timestamp |
 
-## Customer status lifecycle
+## Customer & Visit Status Lifecycle
 
 ```text
 unassigned
 → assigned_to_inside_sales
 → interested OR not_interested
-→ visit_scheduled
-→ visit_in_progress
-→ visit_completed
+→ visit_scheduled (bidirectional atomic sync with visit creation)
+→ visit_in_progress (bidirectional atomic sync with visit check-in)
+→ visit_completed (bidirectional atomic sync with visit completion)
 ```
