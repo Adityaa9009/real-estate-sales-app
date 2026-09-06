@@ -1,10 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../config/app_theme.dart';
 import '../../models/visit.dart';
 import '../../services/database_service.dart';
+import '../../widgets/empty_state_widget.dart';
+import '../../widgets/skeleton_shimmer.dart';
 
 class FieldTrackingTab extends StatelessWidget {
   const FieldTrackingTab({super.key});
@@ -14,28 +17,21 @@ class FieldTrackingTab extends StatelessWidget {
     return StreamBuilder<List<Visit>>(
       stream: DatabaseService.getVisitsStream(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: 3,
+            itemBuilder: (context, index) => const SkeletonListTile(),
+          );
         }
 
         final visits = snapshot.data ?? [];
         if (visits.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.photo_camera_front_rounded,
-                  size: 54,
-                  color: AppColors.textMuted,
-                ),
-                SizedBox(height: 12),
-                Text(
-                  'No field visits recorded yet.',
-                  style: TextStyle(color: AppColors.textSecondary),
-                ),
-              ],
-            ),
+          return const EmptyStateWidget(
+            icon: Icons.photo_camera_front_rounded,
+            title: 'No Field Visits Recorded',
+            message: 'Visits conducted by Outside Sales reps will appear here with live status tracking, verification selfies, and audio recordings.',
           );
         }
 
@@ -44,13 +40,35 @@ class FieldTrackingTab extends StatelessWidget {
           itemCount: visits.length,
           itemBuilder: (context, index) {
             final visit = visits[index];
+            final isInProgress = visit.status == VisitStatus.visitInProgress;
+            final isCompleted = visit.status == VisitStatus.visitCompleted;
+
+            final statusColor = switch (visit.status) {
+              VisitStatus.visitCompleted => AppColors.success,
+              VisitStatus.visitInProgress => AppColors.warning,
+              VisitStatus.visitScheduled => AppColors.info,
+            };
+
             return Container(
               margin: const EdgeInsets.only(bottom: 14),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: AppColors.surfaceCard,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.surfaceBorder),
+                border: Border.all(
+                  color: isInProgress
+                      ? AppColors.warning.withAlpha(120)
+                      : AppColors.surfaceBorder,
+                ),
+                boxShadow: isInProgress
+                    ? [
+                        BoxShadow(
+                          color: AppColors.warning.withAlpha(20),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -60,13 +78,18 @@ class FieldTrackingTab extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          const CircleAvatar(
-                            radius: 18,
-                            backgroundColor: AppColors.primary,
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: statusColor.withAlpha(25),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: statusColor.withAlpha(70)),
+                            ),
                             child: Icon(
                               Icons.location_city_rounded,
-                              color: Colors.white,
-                              size: 18,
+                              color: statusColor,
+                              size: 20,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -75,15 +98,16 @@ class FieldTrackingTab extends StatelessWidget {
                             children: [
                               Text(
                                 visit.customerName,
-                                style: const TextStyle(
-                                  fontSize: 16,
+                                style: GoogleFonts.sora(
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.textPrimary,
                                 ),
                               ),
+                              const SizedBox(height: 2),
                               Text(
                                 'Outside Rep: ${visit.outsideSalesName ?? "Assigned Staff"}',
-                                style: const TextStyle(
+                                style: GoogleFonts.inter(
                                   fontSize: 12,
                                   color: AppColors.textSecondary,
                                 ),
@@ -95,55 +119,77 @@ class FieldTrackingTab extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 10,
-                          vertical: 4,
+                          vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: switch (visit.status) {
-                            VisitStatus.visitCompleted =>
-                              AppColors.success.withAlpha(35),
-                            VisitStatus.visitInProgress =>
-                              AppColors.warning.withAlpha(35),
-                            VisitStatus.visitScheduled =>
-                              AppColors.info.withAlpha(35),
-                          },
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: switch (visit.status) {
-                              VisitStatus.visitCompleted => AppColors.success,
-                              VisitStatus.visitInProgress => AppColors.warning,
-                              VisitStatus.visitScheduled => AppColors.info,
-                            },
-                          ),
+                          color: statusColor.withAlpha(25),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: statusColor.withAlpha(90)),
                         ),
-                        child: Text(
-                          visit.status.label.toUpperCase(),
-                          style: TextStyle(
-                            color: switch (visit.status) {
-                              VisitStatus.visitCompleted => AppColors.success,
-                              VisitStatus.visitInProgress => AppColors.warning,
-                              VisitStatus.visitScheduled => AppColors.info,
-                            },
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (isInProgress) ...[
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: statusColor,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: statusColor.withAlpha(150),
+                                      blurRadius: 6,
+                                      spreadRadius: 1,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                            ],
+                            Text(
+                              visit.status.label.toUpperCase(),
+                              style: GoogleFonts.inter(
+                                color: statusColor,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   if (visit.notes != null && visit.notes!.isNotEmpty) ...[
-                    Text(
-                      'Notes: ${visit.notes!}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textMuted,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceLight,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.notes_rounded, size: 14, color: AppColors.textMuted),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              visit.notes!,
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 12),
                   ],
 
                   // Media verification status with honest Cloud Storage gate
-                  _MediaVerificationCard(visitId: visit.id),
+                  _MediaVerificationCard(visitId: visit.id, isCompleted: isCompleted),
                 ],
               ),
             );
@@ -156,7 +202,12 @@ class FieldTrackingTab extends StatelessWidget {
 
 class _MediaVerificationCard extends StatelessWidget {
   final String visitId;
-  const _MediaVerificationCard({required this.visitId});
+  final bool isCompleted;
+
+  const _MediaVerificationCard({
+    required this.visitId,
+    required this.isCompleted,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -184,18 +235,20 @@ class _MediaVerificationCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.surfaceBorder),
             ),
-            child: const Row(
+            child: Row(
               children: [
                 Icon(
-                  Icons.cloud_off_rounded,
+                  isCompleted ? Icons.cloud_off_rounded : Icons.pending_actions_rounded,
                   size: 18,
                   color: AppColors.textMuted,
                 ),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Recordings & selfies will appear here once Cloud Storage is enabled',
-                    style: TextStyle(
+                    isCompleted
+                        ? 'Audio & selfie media will sync here once Cloud Storage is configured'
+                        : 'Visit is in progress. Media will upload automatically upon visit completion',
+                    style: GoogleFonts.inter(
                       fontSize: 12,
                       color: AppColors.textMuted,
                       fontWeight: FontWeight.w500,
@@ -209,7 +262,7 @@ class _MediaVerificationCard extends StatelessWidget {
 
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: AppColors.surfaceLight,
             borderRadius: BorderRadius.circular(12),
@@ -219,17 +272,17 @@ class _MediaVerificationCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (selfiePath != null && selfiePath.isNotEmpty) ...[
-                const Row(
+                Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.camera_alt_rounded,
                       size: 14,
                       color: AppColors.info,
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Text(
                       'Customer Verification Selfie',
-                      style: TextStyle(
+                      style: GoogleFonts.inter(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textSecondary,
@@ -243,7 +296,7 @@ class _MediaVerificationCard extends StatelessWidget {
                   builder: (context, urlSnap) {
                     if (urlSnap.connectionState == ConnectionState.waiting) {
                       return const SizedBox(
-                        height: 100,
+                        height: 120,
                         child: Center(
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
@@ -258,9 +311,8 @@ class _MediaVerificationCard extends StatelessWidget {
                         ),
                         child: Text(
                           'Path: $selfiePath',
-                          style: const TextStyle(
+                          style: GoogleFonts.jetBrainsMono(
                             fontSize: 11,
-                            fontFamily: 'monospace',
                             color: AppColors.textMuted,
                           ),
                         ),
@@ -270,7 +322,7 @@ class _MediaVerificationCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                       child: Image.network(
                         urlSnap.data!,
-                        height: 140,
+                        height: 150,
                         width: double.infinity,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => const Center(
@@ -283,17 +335,17 @@ class _MediaVerificationCard extends StatelessWidget {
                 const SizedBox(height: 10),
               ],
               if (recordingPath != null && recordingPath.isNotEmpty) ...[
-                const Row(
+                Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.mic_rounded,
                       size: 14,
                       color: AppColors.danger,
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Text(
                       'Site Audio Recording',
-                      style: TextStyle(
+                      style: GoogleFonts.inter(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textSecondary,
@@ -302,12 +354,27 @@ class _MediaVerificationCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  'Stored at: $recordingPath',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textMuted,
-                    fontFamily: 'monospace',
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceBorder.withAlpha(40),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.audiotrack_rounded, size: 14, color: AppColors.textMuted),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          recordingPath,
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 11,
+                            color: AppColors.textMuted,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

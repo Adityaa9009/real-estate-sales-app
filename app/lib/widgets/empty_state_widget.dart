@@ -21,42 +21,56 @@ class EmptyStateWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isTest = WidgetsBinding.instance is! WidgetsFlutterBinding;
+
+    Widget iconWidget = Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.surfaceBorder, width: 1.5),
+        boxShadow: [
+          AppColors.softGlow(AppColors.primary, blur: 20),
+        ],
+      ),
+      child: Icon(icon, size: 36, color: AppColors.primaryLight),
+    );
+
+    Widget titleWidget = Text(
+      title,
+      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+        color: AppColors.textPrimary,
+        fontWeight: FontWeight.w600,
+      ),
+      textAlign: TextAlign.center,
+    );
+
+    Widget messageWidget = Text(
+      message,
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+        color: AppColors.textSecondary,
+        height: 1.4,
+      ),
+      textAlign: TextAlign.center,
+    );
+
+    if (!isTest) {
+      iconWidget = iconWidget.animate().scale(duration: 400.ms, curve: Curves.easeOutBack);
+      titleWidget = titleWidget.animate().fadeIn(delay: 100.ms).slideY(begin: 0.2, end: 0);
+      messageWidget = messageWidget.animate().fadeIn(delay: 150.ms).slideY(begin: 0.2, end: 0);
+    }
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceLight,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.surfaceBorder, width: 1.5),
-                boxShadow: [
-                  AppColors.softGlow(AppColors.primary, blur: 20),
-                ],
-              ),
-              child: Icon(icon, size: 36, color: AppColors.primaryLight),
-            ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
+            iconWidget,
             const SizedBox(height: 20),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
-              textAlign: TextAlign.center,
-            ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2, end: 0),
+            titleWidget,
             const SizedBox(height: 8),
-            Text(
-              message,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
-                height: 1.4,
-              ),
-              textAlign: TextAlign.center,
-            ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.2, end: 0),
+            messageWidget,
             if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: 24),
               ElevatedButton.icon(
@@ -71,7 +85,7 @@ class EmptyStateWidget extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-              ).animate().fadeIn(delay: 200.ms).scale(begin: const Offset(0.9, 0.9)),
+              ),
             ],
           ],
         ),

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../config/app_theme.dart';
 import '../../models/employee.dart';
 import '../../services/database_service.dart';
+import '../../widgets/empty_state_widget.dart';
 import '../../widgets/role_badge.dart';
 import '../../widgets/search_bar_widget.dart';
+import '../../widgets/skeleton_shimmer.dart';
 
 class EmployeesTab extends StatefulWidget {
   const EmployeesTab({super.key});
@@ -32,9 +35,17 @@ class _EmployeesTabState extends State<EmployeesTab> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: AppColors.surfaceCard,
-          title: const Text(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppColors.surfaceBorder),
+          ),
+          title: Text(
             'Add New Employee',
-            style: TextStyle(color: AppColors.textPrimary),
+            style: GoogleFonts.sora(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+            ),
           ),
           content: SingleChildScrollView(
             child: Column(
@@ -57,7 +68,7 @@ class _EmployeesTabState extends State<EmployeesTab> {
                         Expanded(
                           child: Text(
                             validationError!,
-                            style: const TextStyle(color: AppColors.danger, fontSize: 13),
+                            style: GoogleFonts.inter(color: AppColors.danger, fontSize: 13),
                           ),
                         ),
                       ],
@@ -66,20 +77,20 @@ class _EmployeesTabState extends State<EmployeesTab> {
                 ],
                 TextField(
                   controller: nameController,
-                  style: const TextStyle(color: AppColors.textPrimary),
+                  style: GoogleFonts.inter(color: AppColors.textPrimary),
                   decoration: const InputDecoration(labelText: 'Full Name'),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: emailController,
-                  style: const TextStyle(color: AppColors.textPrimary),
+                  style: GoogleFonts.inter(color: AppColors.textPrimary),
                   decoration: const InputDecoration(labelText: 'Email Address'),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: passwordController,
                   obscureText: obscurePassword,
-                  style: const TextStyle(color: AppColors.textPrimary),
+                  style: GoogleFonts.inter(color: AppColors.textPrimary),
                   decoration: InputDecoration(
                     labelText: 'Password (min. 6 characters)',
                     suffixIcon: IconButton(
@@ -101,13 +112,13 @@ class _EmployeesTabState extends State<EmployeesTab> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: phoneController,
-                  style: const TextStyle(color: AppColors.textPrimary),
+                  style: GoogleFonts.inter(color: AppColors.textPrimary),
                   decoration: const InputDecoration(labelText: 'Phone Number'),
                 ),
                 const SizedBox(height: 14),
-                const Text(
+                Text(
                   'Employee Position / Role',
-                  style: TextStyle(
+                  style: GoogleFonts.inter(
                     fontSize: 12,
                     color: AppColors.textSecondary,
                   ),
@@ -122,7 +133,7 @@ class _EmployeesTabState extends State<EmployeesTab> {
                           value: r,
                           child: Text(
                             r.label,
-                            style: const TextStyle(
+                            style: GoogleFonts.inter(
                               color: AppColors.textPrimary,
                             ),
                           ),
@@ -142,6 +153,12 @@ class _EmployeesTabState extends State<EmployeesTab> {
               child: const Text('Cancel'),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
               onPressed: isSubmitting
                   ? null
                   : () async {
@@ -219,31 +236,60 @@ class _EmployeesTabState extends State<EmployeesTab> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    onPressed: _showAddEmployeeDialog,
-                    icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
-                    label: const Text('Add Employee'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                  Container(
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withAlpha(60),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton.icon(
+                      onPressed: _showAddEmployeeDialog,
+                      icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                      label: Text(
+                        'Add Staff',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
               // Role Filter Chips
-              Row(
-                children: [
-                  _filterChip(label: 'All Employees', role: null),
-                  const SizedBox(width: 8),
-                  _filterChip(label: 'Inside Sales', role: AppRole.insideSales),
-                  const SizedBox(width: 8),
-                  _filterChip(
-                    label: 'Outside Sales',
-                    role: AppRole.outsideSales,
-                  ),
-                  const SizedBox(width: 8),
-                  _filterChip(label: 'Executive', role: AppRole.executive),
-                ],
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _filterChip(label: 'All Staff', role: null),
+                    const SizedBox(width: 8),
+                    _filterChip(label: 'Inside Sales', role: AppRole.insideSales),
+                    const SizedBox(width: 8),
+                    _filterChip(
+                      label: 'Outside Sales',
+                      role: AppRole.outsideSales,
+                    ),
+                    const SizedBox(width: 8),
+                    _filterChip(label: 'Executive', role: AppRole.executive),
+                    const SizedBox(width: 8),
+                    _filterChip(label: 'Admin', role: AppRole.admin),
+                  ],
+                ),
               ),
             ],
           ),
@@ -256,8 +302,13 @@ class _EmployeesTabState extends State<EmployeesTab> {
               roleFilter: _selectedRoleFilter,
             ),
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+              if (snapshot.connectionState == ConnectionState.waiting &&
+                  !snapshot.hasData) {
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: 4,
+                  itemBuilder: (context, index) => const SkeletonListTile(),
+                );
               }
 
               final employees = (snapshot.data ?? []).where((e) {
@@ -268,36 +319,35 @@ class _EmployeesTabState extends State<EmployeesTab> {
               }).toList();
 
               if (employees.isEmpty) {
-                return const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.people_outline_rounded,
-                        size: 48,
-                        color: AppColors.textMuted,
-                      ),
-                      SizedBox(height: 12),
-                      Text(
-                        'No employees found.',
-                        style: TextStyle(color: AppColors.textSecondary),
-                      ),
-                    ],
-                  ),
+                return EmptyStateWidget(
+                  icon: Icons.people_outline_rounded,
+                  title: 'No Staff Found',
+                  message: _searchQuery.isNotEmpty || _selectedRoleFilter != null
+                      ? 'No staff members match the selected search or filter.'
+                      : 'No employees registered yet. Click "Add Staff" to create an account.',
+                  actionLabel: _searchQuery.isNotEmpty || _selectedRoleFilter != null
+                      ? 'Reset Filters'
+                      : null,
+                  onAction: () {
+                    setState(() {
+                      _searchQuery = '';
+                      _selectedRoleFilter = null;
+                    });
+                  },
                 );
               }
 
               return ListView.builder(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 8,
+                  vertical: 4,
                 ),
                 itemCount: employees.length,
                 itemBuilder: (context, index) {
                   final emp = employees[index];
                   return Container(
                     margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: AppColors.surfaceCard,
                       borderRadius: BorderRadius.circular(14),
@@ -306,11 +356,12 @@ class _EmployeesTabState extends State<EmployeesTab> {
                     child: Row(
                       children: [
                         CircleAvatar(
-                          backgroundColor: emp.role.color.withAlpha(40),
+                          backgroundColor: emp.role.color.withAlpha(35),
+                          radius: 20,
                           child: Icon(
                             emp.role.icon,
                             color: emp.role.color,
-                            size: 20,
+                            size: 18,
                           ),
                         ),
                         const SizedBox(width: 14),
@@ -320,16 +371,16 @@ class _EmployeesTabState extends State<EmployeesTab> {
                             children: [
                               Text(
                                 emp.name,
-                                style: const TextStyle(
-                                  fontSize: 15,
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.textPrimary,
                                 ),
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 3),
                               Text(
                                 '${emp.email}  •  ${emp.phone}',
-                                style: const TextStyle(
+                                style: GoogleFonts.inter(
                                   fontSize: 12,
                                   color: AppColors.textSecondary,
                                 ),
@@ -357,7 +408,7 @@ class _EmployeesTabState extends State<EmployeesTab> {
                           ),
                           child: Text(
                             emp.active ? 'Active' : 'Inactive',
-                            style: TextStyle(
+                            style: GoogleFonts.inter(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                               color: emp.active
@@ -366,7 +417,7 @@ class _EmployeesTabState extends State<EmployeesTab> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 4),
                         IconButton(
                           icon: Icon(
                             emp.active
@@ -375,7 +426,7 @@ class _EmployeesTabState extends State<EmployeesTab> {
                             color: emp.active
                                 ? AppColors.danger
                                 : AppColors.success,
-                            size: 20,
+                            size: 18,
                           ),
                           tooltip: emp.active ? 'Deactivate' : 'Reactivate',
                           onPressed: () async {
@@ -406,13 +457,16 @@ class _EmployeesTabState extends State<EmployeesTab> {
       onSelected: (_) => setState(() => _selectedRoleFilter = role),
       selectedColor: AppColors.primary.withAlpha(50),
       backgroundColor: AppColors.surfaceLight,
-      labelStyle: TextStyle(
+      labelStyle: GoogleFonts.inter(
         color: isSelected ? AppColors.primaryLight : AppColors.textSecondary,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
         fontSize: 12,
       ),
       side: BorderSide(
         color: isSelected ? AppColors.primary : AppColors.surfaceBorder,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
       ),
     );
   }

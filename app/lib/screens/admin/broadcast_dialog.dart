@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../config/app_theme.dart';
 import '../../services/database_service.dart';
@@ -65,13 +66,30 @@ class _BroadcastDialogState extends State<BroadcastDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: AppColors.surfaceCard,
-      title: const Row(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AppColors.surfaceBorder),
+      ),
+      title: Row(
         children: [
-          Icon(Icons.campaign_rounded, color: AppColors.primary, size: 24),
-          SizedBox(width: 10),
-          Text(
-            '1-Click Broadcast Message',
-            style: TextStyle(fontSize: 18, color: AppColors.textPrimary),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withAlpha(30),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.campaign_rounded, color: AppColors.primaryLight, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              '1-Click Broadcast Message',
+              style: GoogleFonts.sora(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
           ),
         ],
       ),
@@ -80,14 +98,14 @@ class _BroadcastDialogState extends State<BroadcastDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Send an instant notification/banner to all employees regarding updates, holidays, or sales incentives.',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            Text(
+              'Send an instant announcement banner to all employee dashboards regarding updates, holidays, or incentives.',
+              style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Announcement Title',
-              style: TextStyle(
+              style: GoogleFonts.inter(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textSecondary,
@@ -96,18 +114,19 @@ class _BroadcastDialogState extends State<BroadcastDialog> {
             const SizedBox(height: 6),
             TextField(
               controller: _titleController,
-              style: const TextStyle(
+              style: GoogleFonts.inter(
                 color: AppColors.textPrimary,
                 fontSize: 14,
               ),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'e.g. Festival Holiday Notice',
+                hintStyle: GoogleFonts.inter(fontSize: 13, color: AppColors.textMuted),
               ),
             ),
             const SizedBox(height: 14),
-            const Text(
+            Text(
               'Message Body',
-              style: TextStyle(
+              style: GoogleFonts.inter(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textSecondary,
@@ -117,12 +136,13 @@ class _BroadcastDialogState extends State<BroadcastDialog> {
             TextField(
               controller: _messageController,
               maxLines: 4,
-              style: const TextStyle(
+              style: GoogleFonts.inter(
                 color: AppColors.textPrimary,
                 fontSize: 14,
               ),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Write update details here...',
+                hintStyle: GoogleFonts.inter(fontSize: 13, color: AppColors.textMuted),
               ),
             ),
           ],
@@ -131,16 +151,42 @@ class _BroadcastDialogState extends State<BroadcastDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text(
+          child: Text(
             'Cancel',
-            style: TextStyle(color: AppColors.textMuted),
+            style: GoogleFonts.inter(color: AppColors.textMuted),
           ),
         ),
-        ElevatedButton.icon(
-          onPressed: _isSending ? null : _send,
-          icon: const Icon(Icons.send_rounded, size: 16),
-          label: const Text('Send to All Staff'),
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+        Container(
+          decoration: BoxDecoration(
+            gradient: AppColors.primaryGradient,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: ElevatedButton.icon(
+            onPressed: _isSending ? null : _send,
+            icon: _isSending
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.send_rounded, size: 15, color: Colors.white),
+            label: Text(
+              _isSending ? 'Sending...' : 'Send to All Staff',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            ),
+          ),
         ),
       ],
     );
