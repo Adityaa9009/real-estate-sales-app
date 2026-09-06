@@ -612,7 +612,7 @@ class _VisitsViewState extends State<VisitsView> {
 
               if (filtered.isEmpty) {
                 return EmptyStateWidget(
-                  icon: Icons.assignment_turned_in_outlined,
+                  icon: Icons.assignment_turned_in_rounded,
                   title: 'No Visits Found',
                   message: _search.isNotEmpty || _statusFilter != null
                       ? 'No customer visits match the selected filter.'
@@ -633,18 +633,7 @@ class _VisitsViewState extends State<VisitsView> {
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 14),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceCard,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: AppColors.surfaceBorder),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(35),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
+                    decoration: CardStyles.secondary(borderRadius: 18),
                     child: Padding(
                       padding: const EdgeInsets.all(18),
                       child: Column(
@@ -686,7 +675,7 @@ class _VisitsViewState extends State<VisitsView> {
                                     const SizedBox(height: 3),
                                     Row(
                                       children: [
-                                        const Icon(Icons.phone_outlined, size: 12, color: AppColors.textMuted),
+                                        const Icon(Icons.phone_rounded, size: 12, color: AppColors.textMuted),
                                         const SizedBox(width: 4),
                                         Text(
                                           v.maskedPhone,
@@ -771,7 +760,7 @@ class _VisitsViewState extends State<VisitsView> {
                                     ),
                                   ),
                                   const SizedBox(width: 10),
-                                  const Icon(Icons.mic, size: 16, color: AppColors.danger),
+                                  const Icon(Icons.mic_rounded, size: 16, color: AppColors.danger),
                                   const SizedBox(width: 8),
                                   Text(
                                     'Audio recording in progress for this visit...',

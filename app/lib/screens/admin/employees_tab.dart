@@ -169,7 +169,7 @@ class _EmployeesTabState extends State<EmployeesTab> {
                   initialValue: selectedRole,
                   dropdownColor: AppColors.surfaceCard,
                   decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.badge_outlined, size: 18, color: AppColors.textSecondary),
+                    prefixIcon: Icon(Icons.badge_rounded, size: 18, color: AppColors.textSecondary),
                   ),
                   items: AppRole.values
                       .map(

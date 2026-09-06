@@ -34,7 +34,7 @@ class NotInterestedView extends StatelessWidget {
         final list = snapshot.data ?? [];
         if (list.isEmpty) {
           return const EmptyStateWidget(
-            icon: Icons.thumb_down_alt_outlined,
+            icon: Icons.thumb_down_alt_rounded,
             title: 'No Inactive Leads',
             message: 'Customers marked as not interested will appear here with automated courtesy message status.',
           );

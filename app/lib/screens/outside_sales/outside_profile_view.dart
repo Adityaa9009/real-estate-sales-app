@@ -24,18 +24,7 @@ class OutsideProfileView extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 440),
           child: Container(
             padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceCard,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: AppColors.surfaceBorder),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(50),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
+            decoration: CardStyles.primary(borderRadius: 24),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -80,7 +69,7 @@ class OutsideProfileView extends StatelessWidget {
                         shape: BoxShape.circle,
                         border: Border.all(color: AppColors.surfaceCard, width: 3),
                       ),
-                      child: const Icon(Icons.check, color: Colors.white, size: 12),
+                      child: const Icon(Icons.check_rounded, color: Colors.white, size: 12),
                     ),
                   ],
                 ),
@@ -100,13 +89,13 @@ class OutsideProfileView extends StatelessWidget {
                 const SizedBox(height: 20),
 
                 // Info Rows
-                _infoRow(Icons.email_outlined, 'Email', emp?.email ?? 'N/A'),
+                _infoRow(Icons.mail_outline_rounded, 'Email', emp?.email ?? 'N/A'),
                 const SizedBox(height: 14),
-                _infoRow(Icons.phone_outlined, 'Phone', emp?.phone ?? 'N/A'),
+                _infoRow(Icons.phone_rounded, 'Phone', emp?.phone ?? 'N/A'),
                 const SizedBox(height: 14),
                 _infoRow(Icons.directions_walk_rounded, 'Operations', 'Field Client Site Visits'),
                 const SizedBox(height: 14),
-                _infoRow(Icons.verified_user_outlined, 'Auth Security', 'Mobile Field Access Active'),
+                _infoRow(Icons.verified_user_rounded, 'Auth Security', 'Mobile Field Access Active'),
                 const SizedBox(height: 28),
 
                 // Logout Button

@@ -34,7 +34,7 @@ class InterestedView extends StatelessWidget {
         final interested = snapshot.data ?? [];
         if (interested.isEmpty) {
           return const EmptyStateWidget(
-            icon: Icons.thumb_up_alt_outlined,
+            icon: Icons.thumb_up_alt_rounded,
             title: 'No Interested Leads Yet',
             message: 'When you qualify leads as Interested during calls, they will appear here ready for field visit scheduling.',
           );

@@ -145,17 +145,17 @@ class _OutsideSalesShellState extends State<OutsideSalesShell> {
           indicatorColor: AppColors.success.withAlpha(40),
           destinations: const [
             NavigationDestination(
-              icon: Icon(Icons.home_outlined),
+              icon: Icon(Icons.home_rounded),
               selectedIcon: Icon(Icons.home_rounded, color: AppColors.success),
               label: 'Home',
             ),
             NavigationDestination(
-              icon: Icon(Icons.pin_drop_outlined),
+              icon: Icon(Icons.pin_drop_rounded),
               selectedIcon: Icon(Icons.pin_drop_rounded, color: AppColors.success),
               label: 'Visits',
             ),
             NavigationDestination(
-              icon: Icon(Icons.person_outline),
+              icon: Icon(Icons.person_rounded),
               selectedIcon: Icon(Icons.person_rounded, color: AppColors.success),
               label: 'Profile',
             ),

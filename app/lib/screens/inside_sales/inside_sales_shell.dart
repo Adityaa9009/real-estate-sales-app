@@ -155,32 +155,32 @@ class _InsideSalesShellState extends State<InsideSalesShell> {
           indicatorColor: AppColors.primary.withAlpha(40),
           destinations: const [
             NavigationDestination(
-              icon: Icon(Icons.home_outlined),
+              icon: Icon(Icons.home_rounded),
               selectedIcon: Icon(Icons.home_rounded, color: AppColors.primary),
               label: 'Home',
             ),
             NavigationDestination(
-              icon: Icon(Icons.phone_outlined),
+              icon: Icon(Icons.phone_rounded),
               selectedIcon: Icon(Icons.phone_rounded, color: AppColors.primary),
               label: 'Calls',
             ),
             NavigationDestination(
-              icon: Icon(Icons.thumb_up_outlined),
+              icon: Icon(Icons.thumb_up_rounded),
               selectedIcon: Icon(Icons.thumb_up_rounded, color: AppColors.primary),
               label: 'Interested',
             ),
             NavigationDestination(
-              icon: Icon(Icons.thumb_down_outlined),
+              icon: Icon(Icons.thumb_down_rounded),
               selectedIcon: Icon(Icons.thumb_down_rounded, color: AppColors.primary),
               label: 'Not Int.',
             ),
             NavigationDestination(
-              icon: Icon(Icons.calendar_month_outlined),
+              icon: Icon(Icons.calendar_month_rounded),
               selectedIcon: Icon(Icons.calendar_month_rounded, color: AppColors.primary),
               label: 'Visits',
             ),
             NavigationDestination(
-              icon: Icon(Icons.person_outline),
+              icon: Icon(Icons.person_rounded),
               selectedIcon: Icon(Icons.person_rounded, color: AppColors.primary),
               label: 'Profile',
             ),

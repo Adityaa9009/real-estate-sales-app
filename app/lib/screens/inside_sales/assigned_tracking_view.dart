@@ -31,7 +31,7 @@ class AssignedTrackingView extends StatelessWidget {
         final visits = snapshot.data ?? [];
         if (visits.isEmpty) {
           return const EmptyStateWidget(
-            icon: Icons.calendar_today_outlined,
+            icon: Icons.calendar_today_rounded,
             title: 'No Visits Assigned',
             message: 'When you assign qualified leads for on-site tours with Outside Sales, their visit status will appear here.',
           );
@@ -139,7 +139,7 @@ class AssignedTrackingView extends StatelessWidget {
                                   const SizedBox(height: 6),
                                   Row(
                                     children: [
-                                      const Icon(Icons.person_pin_circle_outlined, size: 13, color: AppColors.primaryLight),
+                                      const Icon(Icons.person_pin_circle_rounded, size: 13, color: AppColors.primaryLight),
                                       const SizedBox(width: 4),
                                       Text(
                                         'Outside Rep: ${v.outsideSalesName ?? "Field Rep"}',
