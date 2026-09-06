@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../config/app_theme.dart';
 
 class DemoAccountBanner extends StatelessWidget {
@@ -21,11 +22,11 @@ class DemoAccountBanner extends StatelessWidget {
         children: [
           const Row(
             children: [
-              Icon(Icons.bolt_rounded, size: 16, color: AppColors.primaryLight),
+              Icon(Icons.badge_outlined, size: 16, color: AppColors.primaryLight),
               SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  'Demo Quick-Login (1-Tap for Evaluation)',
+                  'Demo Accounts (Fill Email)',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -43,26 +44,26 @@ class DemoAccountBanner extends StatelessWidget {
               _buildChip(
                 label: 'Admin',
                 color: AppColors.danger,
-                email: 'admin@realestate.com',
-                password: 'password123',
+                email: 'admin@demo.com',
+                password: '',
               ),
               _buildChip(
                 label: 'Executive',
                 color: AppColors.secondary,
-                email: 'executive@realestate.com',
-                password: 'password123',
+                email: 'executive@demo.com',
+                password: '',
               ),
               _buildChip(
                 label: 'Inside Sales',
                 color: AppColors.primary,
-                email: 'inside.sales@realestate.com',
-                password: 'password123',
+                email: 'inside@demo.com',
+                password: '',
               ),
               _buildChip(
                 label: 'Outside Sales',
                 color: AppColors.success,
-                email: 'outside.sales@realestate.com',
-                password: 'password123',
+                email: 'outside@demo.com',
+                password: '',
               ),
             ],
           ),
