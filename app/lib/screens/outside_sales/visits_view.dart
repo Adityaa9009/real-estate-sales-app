@@ -1,12 +1,18 @@
+import 'dart:io';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../config/app_theme.dart';
 import '../../models/visit.dart';
 import '../../services/call_service.dart';
 import '../../services/database_service.dart';
 import '../../services/media_service.dart';
+import '../../services/storage_availability_service.dart';
 
 class VisitsView extends StatefulWidget {
   const VisitsView({super.key});
@@ -16,6 +22,129 @@ class VisitsView extends StatefulWidget {
 }
 
 class _VisitsViewState extends State<VisitsView> {
+  bool _isStorageAvailable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkInitialStorage();
+  }
+
+  Future<void> _checkInitialStorage() async {
+    final available = await StorageAvailabilityService.isStorageAvailable();
+    if (mounted) {
+      setState(() {
+        _isStorageAvailable = available;
+      });
+    }
+  }
+
+  Future<bool> _ensureStorageAvailable() async {
+    // Show a loading spinner briefly while checking
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const PopScope(
+        canPop: false,
+        child: Center(
+          child: Card(
+            color: AppColors.surfaceCard,
+            elevation: 8,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text(
+                    'Checking Cloud Storage...',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final available = await StorageAvailabilityService.isStorageAvailable(
+      forceRefresh: true,
+    );
+
+    if (mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+      setState(() {
+        _isStorageAvailable = available;
+      });
+    }
+
+    if (!available && mounted) {
+      _showStorageRequiredDialog();
+    }
+
+    return available;
+  }
+
+  void _showStorageRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceCard,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Cloud Storage Required',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: const Text(
+          'Visit recordings and verification selfies are stored securely in '
+          'Firebase Cloud Storage. This project\'s Firebase Storage has not been '
+          'enabled yet — it requires upgrading to the Blaze (pay-as-you-go) billing plan.\n\n'
+          'This feature is fully built and will work as soon as Storage is enabled. '
+          'No charges apply unless usage exceeds Firebase\'s generous free quota.',
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.textSecondary,
+            height: 1.4,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+            ),
+            onPressed: () async {
+              final uri = Uri.parse('https://firebase.google.com/pricing');
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+            child: const Text('View Setup Instructions'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _onReachedLocationTapped(Visit visit) async {
+    final storageOk = await _ensureStorageAvailable();
+    if (!storageOk) return;
+
+    _handleReachedLocation(visit);
+  }
+
   void _handleReachedLocation(Visit visit) async {
     try {
       await DatabaseService.reachVisit(
@@ -44,27 +173,69 @@ class _VisitsViewState extends State<VisitsView> {
     }
   }
 
+  void _onUploadSelfieTapped(Visit visit) async {
+    final storageOk = await _ensureStorageAvailable();
+    if (!storageOk) return;
+
+    _handleUploadSelfie(visit);
+  }
+
   void _handleUploadSelfie(Visit visit) async {
-    if (!MediaService.isStorageConfigured) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: AppColors.warning,
-          content: Text(
-            'Firebase Cloud Storage is unconfigured. Remote selfie verification requires Firebase Storage setup.',
-          ),
-        ),
-      );
-      return;
-    }
     final path = await MediaService.captureVerificationPhoto();
-    if (path != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: AppColors.info,
-          content: Text('Verification photo captured locally.'),
-        ),
+    if (path == null) return;
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        backgroundColor: AppColors.info,
+        content: Text('Uploading verification selfie to Cloud Storage...'),
+      ),
+    );
+
+    try {
+      final file = File(path);
+      final ref = FirebaseStorage.instance.ref(
+        'visits/${visit.id}/selfies/${DateTime.now().millisecondsSinceEpoch}.jpg',
       );
+      await ref.putFile(file);
+      final downloadUrl = await ref.getDownloadURL();
+
+      // Store in /visits/{visitId}/private/media subcollection per firestore.rules
+      await FirebaseFirestore.instance
+          .collection('visits')
+          .doc(visit.id)
+          .collection('private')
+          .doc('media')
+          .set({
+            'selfieUrl': downloadUrl,
+            'uploadedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: AppColors.success,
+            content: Text('Verification selfie uploaded successfully!'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.danger,
+            content: Text('Failed to upload selfie: $e'),
+          ),
+        );
+      }
     }
+  }
+
+  void _onCompletedVisitTapped(Visit visit) async {
+    final storageOk = await _ensureStorageAvailable();
+    if (!storageOk) return;
+
+    _handleCompletedVisit(visit);
   }
 
   void _handleCompletedVisit(Visit visit) {
@@ -139,6 +310,40 @@ class _VisitsViewState extends State<VisitsView> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _wrapWithLockBadge({required Widget child}) {
+    if (_isStorageAvailable) return child;
+
+    return Badge(
+      alignment: const Alignment(0.9, -0.9),
+      backgroundColor: Colors.transparent,
+      padding: EdgeInsets.zero,
+      label: Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceCard,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: AppColors.textMuted.withAlpha(140),
+            width: 1,
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black38,
+              blurRadius: 3,
+              offset: Offset(0, 1),
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.lock_outline_rounded,
+          size: 11,
+          color: AppColors.textMuted,
+        ),
+      ),
+      child: child,
     );
   }
 
@@ -290,53 +495,68 @@ class _VisitsViewState extends State<VisitsView> {
                   const Divider(height: 1),
                   const SizedBox(height: 12),
 
-                  // 3-Step Action Buttons (PDF Page 11)
+                  // 3-Step Action Buttons (PDF Page 11) with Honest Storage Gate
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
                       // Step 1: Reached Location Button
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.location_on_rounded, size: 16),
-                        label: Text(
-                          v.status == VisitStatus.visitInProgress
-                              ? 'In Progress'
-                              : 'Reached Location',
+                      _wrapWithLockBadge(
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.location_on_rounded, size: 16),
+                          label: Text(
+                            v.status == VisitStatus.visitInProgress
+                                ? 'In Progress'
+                                : 'Reached Location',
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                v.status == VisitStatus.visitInProgress
+                                ? AppColors.warning
+                                : AppColors.primary,
+                          ),
+                          onPressed: !_isStorageAvailable
+                              ? () => _onReachedLocationTapped(v)
+                              : (v.status == VisitStatus.visitScheduled
+                                  ? () => _onReachedLocationTapped(v)
+                                  : null),
                         ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              v.status == VisitStatus.visitInProgress
-                              ? AppColors.warning
-                              : AppColors.primary,
-                        ),
-                        onPressed: v.status == VisitStatus.visitScheduled
-                            ? () => _handleReachedLocation(v)
-                            : null,
                       ),
 
                       // Step 2: Upload Selfie with Customer Button
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.camera_alt_rounded, size: 16),
-                        label: const Text('Upload Selfie'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.info,
-                          side: const BorderSide(color: AppColors.info),
+                      _wrapWithLockBadge(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.camera_alt_rounded, size: 16),
+                          label: const Text('Upload Selfie'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.info,
+                            side: const BorderSide(color: AppColors.info),
+                          ),
+                          onPressed: !_isStorageAvailable
+                              ? () => _onUploadSelfieTapped(v)
+                              : (v.status == VisitStatus.visitInProgress
+                                  ? () => _onUploadSelfieTapped(v)
+                                  : null),
                         ),
-                        onPressed: v.status == VisitStatus.visitInProgress
-                            ? () => _handleUploadSelfie(v)
-                            : null,
                       ),
 
                       // Step 3: Completed Visit Button
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.check_circle_rounded, size: 16),
-                        label: const Text('Completed Visit'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.success,
+                      _wrapWithLockBadge(
+                        child: ElevatedButton.icon(
+                          icon: const Icon(
+                            Icons.check_circle_rounded,
+                            size: 16,
+                          ),
+                          label: const Text('Completed Visit'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.success,
+                          ),
+                          onPressed: !_isStorageAvailable
+                              ? () => _onCompletedVisitTapped(v)
+                              : (v.status == VisitStatus.visitInProgress
+                                  ? () => _onCompletedVisitTapped(v)
+                                  : null),
                         ),
-                        onPressed: v.status == VisitStatus.visitInProgress
-                            ? () => _handleCompletedVisit(v)
-                            : null,
                       ),
                     ],
                   ),

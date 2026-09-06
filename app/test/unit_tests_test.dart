@@ -7,6 +7,7 @@ import 'package:real_estate_sales_app/models/customer_assignment.dart';
 import 'package:real_estate_sales_app/services/call_service.dart';
 import 'package:real_estate_sales_app/services/location_service.dart';
 import 'package:real_estate_sales_app/services/database_service.dart';
+import 'package:real_estate_sales_app/services/storage_availability_service.dart';
 
 void main() {
   group('AppRole fail-closed tests', () {
@@ -312,6 +313,27 @@ void main() {
       expect(summary.contains('12/12 migrated'), isTrue);
       expect(summary.contains('5/6 migrated'), isTrue);
       expect(summary.contains('errors: 1'), isTrue);
+    });
+  });
+
+  group('StorageAvailabilityService tests', () {
+    tearDown(() {
+      StorageAvailabilityService.setMockAvailability(null);
+    });
+
+    test('cachedStatus returns false when cache is empty', () {
+      StorageAvailabilityService.setMockAvailability(null);
+      expect(StorageAvailabilityService.cachedStatus, isFalse);
+    });
+
+    test('cachedStatus returns true when mock availability is set to true', () {
+      StorageAvailabilityService.setMockAvailability(true);
+      expect(StorageAvailabilityService.cachedStatus, isTrue);
+    });
+
+    test('cachedStatus returns false when mock availability is set to false', () {
+      StorageAvailabilityService.setMockAvailability(false);
+      expect(StorageAvailabilityService.cachedStatus, isFalse);
     });
   });
 }

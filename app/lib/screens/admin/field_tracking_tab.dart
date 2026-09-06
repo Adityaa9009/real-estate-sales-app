@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../config/app_theme.dart';
@@ -140,98 +141,143 @@ class FieldTrackingTab extends StatelessWidget {
                     const SizedBox(height: 12),
                   ],
 
-                  // Media verification status
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceLight,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.surfaceBorder),
-                          ),
-                          child: const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.camera_alt_rounded,
-                                    size: 14,
-                                    color: AppColors.info,
-                                  ),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Customer Selfie',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 6),
-                              Text(
-                                'Requires Firebase Storage',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.textMuted,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceLight,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.surfaceBorder),
-                          ),
-                          child: const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.mic_rounded,
-                                    size: 14,
-                                    color: AppColors.danger,
-                                  ),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Site Audio Record',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 6),
-                              Text(
-                                'Requires Firebase Storage',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.textMuted,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  // Media verification status with honest Cloud Storage gate
+                  _MediaVerificationCard(visitId: visit.id),
                 ],
               ),
             );
           },
+        );
+      },
+    );
+  }
+}
+
+class _MediaVerificationCard extends StatelessWidget {
+  final String visitId;
+  const _MediaVerificationCard({required this.visitId});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      future: FirebaseFirestore.instance
+          .collection('visits')
+          .doc(visitId)
+          .collection('private')
+          .doc('media')
+          .get(),
+      builder: (context, snapshot) {
+        final data = snapshot.data?.data();
+        final selfieUrl = data?['selfieUrl'] as String?;
+        final audioUrl = data?['audioUrl'] as String?;
+
+        final hasMedia = (selfieUrl != null && selfieUrl.isNotEmpty) ||
+            (audioUrl != null && audioUrl.isNotEmpty);
+
+        if (!hasMedia) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceLight,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.surfaceBorder),
+            ),
+            child: const Row(
+              children: [
+                Icon(
+                  Icons.cloud_off_rounded,
+                  size: 18,
+                  color: AppColors.textMuted,
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Recordings & selfies will appear here once Cloud Storage is enabled',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textMuted,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceLight,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.surfaceBorder),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (selfieUrl != null && selfieUrl.isNotEmpty) ...[
+                const Row(
+                  children: [
+                    Icon(
+                      Icons.camera_alt_rounded,
+                      size: 14,
+                      color: AppColors.info,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      'Customer Verification Selfie',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    selfieUrl,
+                    height: 140,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => const Center(
+                      child: Icon(Icons.broken_image_rounded),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+              if (audioUrl != null && audioUrl.isNotEmpty) ...[
+                const Row(
+                  children: [
+                    Icon(
+                      Icons.mic_rounded,
+                      size: 14,
+                      color: AppColors.danger,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      'Site Audio Recording',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Audio proof recorded and stored securely.',
+                  style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                ),
+              ],
+            ],
+          ),
         );
       },
     );
