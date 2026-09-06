@@ -141,19 +141,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 440),
                   child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceLight.withAlpha(210),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: Colors.white.withAlpha(25),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(60),
-                          blurRadius: 30,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
+                    decoration: CardStyles.primary(
+                      color: AppColors.surfaceLight.withAlpha(220),
+                      borderRadius: 24,
+                      glowColor: AppColors.primary,
                     ),
                     padding: const EdgeInsets.all(28),
                     child: Column(
@@ -183,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ).safeAnimate(duration: const Duration(milliseconds: 400)),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 14),
                         Text(
                           'REAL ESTATE',
                           textAlign: TextAlign.center,
@@ -196,7 +187,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ).safeAnimate(
                           delay: const Duration(milliseconds: 80),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 6),
                         Text(
                           'Your trusted path to property',
                           textAlign: TextAlign.center,
@@ -208,7 +199,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ).safeAnimate(
                           delay: const Duration(milliseconds: 140),
                         ),
-                        const SizedBox(height: 28),
+                        const SizedBox(height: 32),
 
                         // Error Box
                         if (_errorMessage != null) ...[
@@ -241,7 +232,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 20),
                         ],
 
                         // Email Field
@@ -278,7 +269,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ).safeAnimate(
                           delay: const Duration(milliseconds: 200),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 20),
 
                         // Password Field
                         Text(
@@ -313,8 +304,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
+                                    ? Icons.visibility_off_rounded
+                                    : Icons.visibility_rounded,
                                 color: AppColors.textMuted,
                                 size: 20,
                               ),
@@ -326,7 +317,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ).safeAnimate(
                           delay: const Duration(milliseconds: 260),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 28),
 
                         // Login Button
                         Container(
@@ -371,6 +362,28 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ).safeAnimate(
                           delay: const Duration(milliseconds: 300),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Section divider before demo banner
+                        Row(
+                          children: [
+                            const Expanded(child: Divider(color: AppColors.surfaceBorder)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                'QUICK DEMO SIGN-IN',
+                                style: GoogleFonts.inter(
+                                  fontSize: 10,
+                                  letterSpacing: 1.2,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                            ),
+                            const Expanded(child: Divider(color: AppColors.surfaceBorder)),
+                          ],
                         ),
 
                         const SizedBox(height: 16),
